@@ -6,10 +6,14 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
+import {common} from '@stud-short-url/common';
+
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  Logger.log(common())
 
   const globalPrefix = 'api/v1';
 

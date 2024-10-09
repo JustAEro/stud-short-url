@@ -1,1 +1,5 @@
 <p>main-page works!</p>
+@if (user(); as user) {
+    <p>Id: {{user.id}}</p>
+    <p>Login: {{user.login}}</p>
+}
