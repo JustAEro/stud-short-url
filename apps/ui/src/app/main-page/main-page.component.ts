@@ -11,11 +11,11 @@ import { UserService } from '../user-service/user.service';
   styleUrl: './main-page.component.scss',
 })
 export class MainPageComponent {
-  constructor(
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
+
+  users = derivedAsync(() => this.userService.getUsers());
 
   userId = input.required<string>();
 
-  user = derivedAsync(() => this.userService.getUser(this.userId()))
+  user = derivedAsync(() => this.userService.getUser(this.userId()));
 }
