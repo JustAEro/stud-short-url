@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { derivedAsync } from 'ngxtension/derived-async';
 import { UserService } from '../user-service/user.service';
@@ -15,7 +15,7 @@ export class MainPageComponent {
 
   users = derivedAsync(() => this.userService.getUsers());
 
-  userId = input.required<string>();
+  userId = "92269160-7a94-43ed-b531-0a4dba79e928";
 
-  user = derivedAsync(() => this.userService.getUser(this.userId()));
+  user = derivedAsync(() => this.userService.getUser(this.userId));
 }
