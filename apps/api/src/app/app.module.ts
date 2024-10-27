@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import databaseConfig from './config/database.config';
 import { UserModule } from './user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ShortLinkModule } from './short-link/short-link.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PrismaModule } from './prisma/prisma.module';
     }),
     UserModule,
     PrismaModule,
+    ShortLinkModule,
   ],
   controllers: [AppController],
   providers: [AppService],

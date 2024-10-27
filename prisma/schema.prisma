@@ -17,4 +17,13 @@ model User {
   id String @default(uuid()) @id
   login String @unique
   password String
+  createdLinks ShortLink[]
+}
+
+model ShortLink {
+  id String @default(uuid()) @id
+  longLink String
+  shortKey String @unique
+  createdByUserId String
+  user User @relation(fields: [createdByUserId], references: [id])
 }
