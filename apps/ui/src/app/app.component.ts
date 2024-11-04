@@ -2,11 +2,10 @@ import { Component } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { HeaderComponent } from './header/header.component';
 import {common} from '@stud-short-url/common'
-import { MainPageComponent } from './main-page/main-page.component';
 
 @Component({
   standalone: true,
-  imports: [RouterModule, HeaderComponent, MainPageComponent],
+  imports: [RouterModule, HeaderComponent],
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
