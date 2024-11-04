@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
 import { ShortLinkService } from "./short-link.service";
 import crypto from "node:crypto";
 
@@ -29,5 +29,21 @@ export class ShortLinkController {
                 connect: {login: linkData.login}
             }
         });
+    }
+
+    @Put(':shortKey')
+    async updateLinkByShortKey(
+        @Param('shortKey') shortKey: string,
+        @Body() linkData: {longLink: string;}
+    ) {
+        return await this.shortLinkService.updateLink({
+            where: {shortKey},
+            data: linkData,
+        })
+    }
+
+    @Delete(':shortKey')
+    async deleteLinkByShortKey(@Param('shortKey') shortKey: string) {
+        return await this.shortLinkService.deleteLink({ shortKey });
     }
 }
