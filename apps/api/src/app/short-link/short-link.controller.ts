@@ -1,10 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from "@nestjs/common";
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Req } from "@nestjs/common";
 import { ShortLinkService } from "./short-link.service";
 import crypto from "node:crypto";
+import { LinkStatService } from "../link-stat/link-stat.service";
+import {UAParser} from 'ua-parser-js';
 
 @Controller('short-links')
 export class ShortLinkController {
-    constructor(private readonly shortLinkService: ShortLinkService) {}
+    constructor(
+        private readonly shortLinkService: ShortLinkService,
+        private readonly linkStatService: LinkStatService,
+    ) {}
 
     @Get()
     async getAllShortLinks() {
@@ -12,8 +17,25 @@ export class ShortLinkController {
     }
 
     @Get(':shortKey')
-    async getLinkByShortKey(@Param('shortKey') shortKey: string) {
+    async getLinkByShortKey(@Param('shortKey') shortKey: string, @Req() req: Request) {
         const link = await this.shortLinkService.getLink({shortKey});
+
+        if (!link) {
+            throw new NotFoundException('link not found');
+        }
+
+        const parser = new UAParser((req.headers as any)['user-agent']);
+        const browser = parser.getBrowser().name || 'Unknown';
+        const deviceType = parser.getDevice().type?.toUpperCase() || 'DESKTOP';
+        const referrer = (req.headers as any).referrer;
+        
+
+        this.linkStatService.registerClick({
+            shortKey,
+            deviceType,
+            browser,
+            referrer,
+        })
 
         return link;
     }

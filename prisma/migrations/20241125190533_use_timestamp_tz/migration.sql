@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "LinkStat" ALTER COLUMN "clickedAt" SET DATA TYPE TIMESTAMPTZ;
+
+-- AlterTable
+ALTER TABLE "ShortLink" ALTER COLUMN "createdAt" SET DATA TYPE TIMESTAMPTZ;

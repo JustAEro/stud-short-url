@@ -25,5 +25,18 @@ model ShortLink {
   longLink String
   shortKey String @unique
   createdByUserId String
+  createdAt DateTime @default(now()) @db.Timestamptz
   user User @relation(fields: [createdByUserId], references: [id])
+  linkStats LinkStat[]
 }
+
+model LinkStat {
+  id String @default(uuid()) @id
+  shortLinkId String
+  shortLink ShortLink @relation(fields: [shortLinkId], references: [id])
+  clickedAt DateTime @default(now()) @db.Timestamptz
+  deviceType String
+  browser String
+  referrer String?
+}
+
