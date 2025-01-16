@@ -1,71 +1,88 @@
-import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Put, Req } from "@nestjs/common";
-import { ShortLinkService } from "./short-link.service";
-import crypto from "node:crypto";
-import { LinkStatService } from "../link-stat/link-stat.service";
-import {UAParser} from 'ua-parser-js';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Put,
+  Req,
+} from '@nestjs/common';
+import { ShortLinkService } from './short-link.service';
+import crypto from 'node:crypto';
+import { LinkStatService } from '../link-stat/link-stat.service';
+import { UAParser } from 'ua-parser-js';
+import { ShortLinkDto } from '@stud-short-url/common';
 
 @Controller('short-links')
 export class ShortLinkController {
-    constructor(
-        private readonly shortLinkService: ShortLinkService,
-        private readonly linkStatService: LinkStatService,
-    ) {}
+  constructor(
+    private readonly shortLinkService: ShortLinkService,
+    private readonly linkStatService: LinkStatService
+  ) {}
 
-    @Get()
-    async getAllShortLinks() {
-        return await this.shortLinkService.getAllLinks();
+  @Get()
+  async getAllShortLinks() {
+    return await this.shortLinkService.getAllLinks();
+  }
+
+  @Get(':shortKey')
+  async getLinkByShortKey(
+    @Param('shortKey') shortKey: string,
+    @Req() req: Request
+  ): Promise<ShortLinkDto> {
+    const link = await this.shortLinkService.getLink({ shortKey });
+
+    if (!link) {
+      throw new NotFoundException('link not found');
     }
 
-    @Get(':shortKey')
-    async getLinkByShortKey(@Param('shortKey') shortKey: string, @Req() req: Request) {
-        const link = await this.shortLinkService.getLink({shortKey});
+    const parser = new UAParser((req.headers as any)['user-agent']);
+    const browser = parser.getBrowser().name || 'Unknown';
+    const deviceType = parser.getDevice().type?.toUpperCase() || 'DESKTOP';
+    const referrer = (req.headers as any).referrer;
 
-        if (!link) {
-            throw new NotFoundException('link not found');
-        }
+    this.linkStatService.registerClick({
+      shortKey,
+      deviceType,
+      browser,
+      referrer,
+    });
 
-        const parser = new UAParser((req.headers as any)['user-agent']);
-        const browser = parser.getBrowser().name || 'Unknown';
-        const deviceType = parser.getDevice().type?.toUpperCase() || 'DESKTOP';
-        const referrer = (req.headers as any).referrer;
-        
+    return link;
+  }
 
-        this.linkStatService.registerClick({
-            shortKey,
-            deviceType,
-            browser,
-            referrer,
-        })
+  @Post()
+  async createLink(@Body() linkData: { login: string; longLink: string }) {
+    const shortKey = crypto
+      .createHash('md5')
+      .update(linkData.longLink)
+      .digest('base64url')
+      .slice(0, 8);
 
-        return link;
-    }
+    return await this.shortLinkService.createLink({
+      longLink: linkData.longLink,
+      shortKey,
+      user: {
+        connect: { login: linkData.login },
+      },
+    });
+  }
 
-    @Post()
-    async createLink(@Body() linkData: { login: string; longLink: string;}) {
-        const shortKey = crypto.createHash('md5').update(linkData.longLink).digest('base64url').slice(0, 8);
+  @Put(':shortKey')
+  async updateLinkByShortKey(
+    @Param('shortKey') shortKey: string,
+    @Body() linkData: { longLink: string }
+  ) {
+    return await this.shortLinkService.updateLink({
+      where: { shortKey },
+      data: linkData,
+    });
+  }
 
-        return await this.shortLinkService.createLink({
-            longLink: linkData.longLink,
-            shortKey,
-            user: {
-                connect: {login: linkData.login}
-            }
-        });
-    }
-
-    @Put(':shortKey')
-    async updateLinkByShortKey(
-        @Param('shortKey') shortKey: string,
-        @Body() linkData: {longLink: string;}
-    ) {
-        return await this.shortLinkService.updateLink({
-            where: {shortKey},
-            data: linkData,
-        })
-    }
-
-    @Delete(':shortKey')
-    async deleteLinkByShortKey(@Param('shortKey') shortKey: string) {
-        return await this.shortLinkService.deleteLink({ shortKey });
-    }
+  @Delete(':shortKey')
+  async deleteLinkByShortKey(@Param('shortKey') shortKey: string) {
+    return await this.shortLinkService.deleteLink({ shortKey });
+  }
 }

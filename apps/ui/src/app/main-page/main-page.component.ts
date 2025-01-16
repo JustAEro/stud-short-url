@@ -2,11 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { derivedAsync } from 'ngxtension/derived-async';
 import { UserService } from '../user-service/user.service';
+import { HeaderComponent } from '../header/header.component';
 
 @Component({
   selector: 'app-main-page',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule,  HeaderComponent],
   templateUrl: './main-page.component.html',
   styleUrl: './main-page.component.scss',
 })

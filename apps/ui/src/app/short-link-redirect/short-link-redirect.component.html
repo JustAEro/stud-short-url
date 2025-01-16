@@ -1,0 +1,15 @@
+@if (isLoading) {
+    <div>Loading...</div>
+}
+
+@if (error) {
+    <div [ngStyle]="{color: 'red'}">
+        {{error.message}}
+    </div>
+}
+
+@if (!isLoading && !error) {
+    <div [ngStyle]="{color: 'green'}">
+        Link found. You will be redirected shortly.
+    </div>
+}

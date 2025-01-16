@@ -12,6 +12,9 @@ import { Subscription } from 'rxjs';
 })
 export class ShortLinkRedirectComponent implements OnInit, OnDestroy {
   shortLinkKey!: string;
+  error: Error | null = null;
+  isLoading = false;
+
   private sub!: Subscription;
 
   @Input()
@@ -25,17 +28,26 @@ export class ShortLinkRedirectComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.isLoading = true;
+
     this.sub = this.shortLinkRedirectService
       .getLink(this.shortLinkKey)
-      .subscribe((linkData) => {
-        console.log(linkData);
+      .subscribe({
+        next: (linkData) => {
+          const longLink = linkData.longLink;
 
-        const longLink = (linkData as any)?.longLink; // TODO: remove any, use dto type from common
+          this.error = null;
 
-        if (longLink) {
           window.location.replace(longLink);
-        } else {
-          console.error('Long link not found');
+        },
+        error: (err: Error) => {
+          this.error = err;
+          this.isLoading = false;
+
+          console.error('Error caught in component:', err);
+        },
+        complete: () => {
+          this.isLoading = false;
         }
       });
   }
