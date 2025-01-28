@@ -3,7 +3,7 @@ import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { appRoutes } from './app.routes';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideHttpClient, withFetch } from '@angular/common/http';
-import { LucideAngularModule, Plus, User } from 'lucide-angular';
+import { ClipboardCopy, LucideAngularModule, Plus, User } from 'lucide-angular';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -11,6 +11,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(appRoutes, withComponentInputBinding()),
     provideAnimationsAsync(),
     provideHttpClient(withFetch()),
-    importProvidersFrom(LucideAngularModule.pick({ User, Plus }))
+    importProvidersFrom(LucideAngularModule.pick({ User, Plus, ClipboardCopy }))
   ],
 };

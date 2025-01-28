@@ -14,7 +14,7 @@ import { LucideAngularModule } from 'lucide-angular';
     <main class="main-content">
       <div class="action-bar">
         <h2 class="title">Your Short Links</h2>
-        <button class="create-btn" routerLink="/create-short-link">
+        <button class="create-btn" routerLink="/create">
           <lucide-icon name="plus" class="icon"></lucide-icon>
           Create Short Link
         </button>

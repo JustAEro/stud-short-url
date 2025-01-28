@@ -49,4 +49,13 @@ export class ShortLinkService {
 
         return deleteLink;
     }
+
+    generateUrlSafeString(): string {
+        const urlSafeChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+        const array = new Uint8Array(8); // Массив для 8 случайных байт
+        crypto.getRandomValues(array); // Генерация случайных чисел
+      
+        // Преобразование случайных чисел в символы URL-safe
+        return Array.from(array, (byte) => urlSafeChars[byte % urlSafeChars.length]).join('');
+    }
 }

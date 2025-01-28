@@ -4,4 +4,11 @@ export type ShortLinkDto = {
   shortKey: string;
   createdByUserId: string;
   createdAt: Date;
+  description: string;
+};
+
+export type CreateShortLinkDto = { 
+  login: string; 
+  longLink: string; 
+  description: string;
 };

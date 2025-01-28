@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,29 +8,29 @@ datasource db {
 }
 
 model User {
-  id String @default(uuid()) @id
-  login String @unique
-  password String
+  id           String      @id @default(uuid())
+  login        String      @unique
+  password     String
   createdLinks ShortLink[]
 }
 
 model ShortLink {
-  id String @default(uuid()) @id
-  longLink String
-  shortKey String @unique
+  id              String     @id @default(uuid())
+  longLink        String
+  shortKey        String     @unique
   createdByUserId String
-  createdAt DateTime @default(now()) @db.Timestamptz
-  user User @relation(fields: [createdByUserId], references: [id])
-  linkStats LinkStat[]
+  createdAt       DateTime   @default(now()) @db.Timestamptz(6)
+  description     String
+  linkStats       LinkStat[]
+  user            User       @relation(fields: [createdByUserId], references: [id])
 }
 
 model LinkStat {
-  id String @default(uuid()) @id
+  id          String    @id @default(uuid())
   shortLinkId String
-  shortLink ShortLink @relation(fields: [shortLinkId], references: [id])
-  clickedAt DateTime @default(now()) @db.Timestamptz
-  deviceType String
-  browser String
-  referrer String?
+  clickedAt   DateTime  @default(now()) @db.Timestamptz(6)
+  browser     String
+  referrer    String?
+  deviceType  String
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id])
 }
-

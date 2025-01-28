@@ -3,11 +3,13 @@ import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ShortLinkDto } from '@stud-short-url/common';
+import {MatSnackBarModule, MatSnackBar} from '@angular/material/snack-bar'
+import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
   selector: 'app-short-links-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, MatSnackBarModule, LucideAngularModule],
   template: `
     <div class="container">
       <ng-container *ngIf="loading; else content">
@@ -21,11 +23,18 @@ import { ShortLinkDto } from '@stud-short-url/common';
         <ul *ngIf="shortLinks.length > 0" class="short-links-list">
           <li *ngFor="let link of shortLinks" class="short-link-item">
             <a [routerLink]="['/short-links', link.id]">
-              <h3>{{ link.shortKey }}</h3>
+              <h3>{{ link.description || link.shortKey }}</h3>
             </a>
-            <p>Short path: <a href="{{ origin + '/' + link.shortKey }}">{{ origin + '/' + link.shortKey }}</a></p>
+            <p style="display: inline-flex; align-items: center; gap: 3px;">Short path: 
+              <a href="{{ origin + '/' + link.shortKey }}">
+                {{ origin + '/' + link.shortKey }}
+              </a>
+              <button class="copy-short-link-button" (click)="copyToClipboard(origin + '/' + link.shortKey)">
+                <lucide-icon class="copy-short-link-button_icon" name="clipboard-copy"></lucide-icon>
+              </button>
+            </p>
             <p>Full Path: <a href="{{ link.longLink }}">{{ link.longLink }}</a></p>
-            <p>Created: {{ link.createdAt | date: 'medium' }}</p>
+            <p style="margin-top: 10px;">Created: {{ link.createdAt | date: 'medium' }}</p>
           </li>
         </ul>
       </ng-template>
@@ -49,6 +58,7 @@ import { ShortLinkDto } from '@stud-short-url/common';
         margin: 0.5rem 0;
         border: 1px solid #ccc;
         border-radius: 8px;
+        overflow-wrap: break-word;
       }
 
       .short-link-item a {
@@ -63,6 +73,17 @@ import { ShortLinkDto } from '@stud-short-url/common';
       p {
         margin: 0.2rem 0;
       }
+
+      .copy-short-link-button {
+        border: none;
+        background-color: white;
+        cursor: pointer;
+      }
+
+      ::ng-deep .success-toast {
+        --mdc-snackbar-container-color: #007bff;
+        color: white;
+      }
     `,
   ],
 })
@@ -71,7 +92,7 @@ export class ShortLinksListComponent implements OnInit {
   loading = false;
   origin = window.location.origin;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
     this.loadShortLinks();
@@ -90,5 +111,19 @@ export class ShortLinksListComponent implements OnInit {
         this.loading = false;
       },
     });
+  }
+
+  copyToClipboard(link: string): void {
+    navigator.clipboard.writeText(link).then(
+      () => {
+        this.snackBar.open('Скопировано', '', {
+          duration: 2000, // Уведомление будет показываться 2 секунды
+          horizontalPosition: 'center',
+          verticalPosition: 'bottom',
+          panelClass: ['success-toast']
+        })
+      },
+      (err) => console.error('Ошибка при копировании в буфер обмена', err)
+    );
   }
 }

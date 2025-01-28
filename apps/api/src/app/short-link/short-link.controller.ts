@@ -10,10 +10,9 @@ import {
   Req,
 } from '@nestjs/common';
 import { ShortLinkService } from './short-link.service';
-import crypto from 'node:crypto';
 import { LinkStatService } from '../link-stat/link-stat.service';
 import { UAParser } from 'ua-parser-js';
-import { ShortLinkDto } from '@stud-short-url/common';
+import { CreateShortLinkDto, ShortLinkDto } from '@stud-short-url/common';
 
 @Controller('short-links')
 export class ShortLinkController {
@@ -54,16 +53,13 @@ export class ShortLinkController {
   }
 
   @Post()
-  async createLink(@Body() linkData: { login: string; longLink: string }) {
-    const shortKey = crypto
-      .createHash('md5')
-      .update(linkData.longLink)
-      .digest('base64url')
-      .slice(0, 8);
+  async createLink(@Body() linkData: CreateShortLinkDto) {
+    const shortKey = this.shortLinkService.generateUrlSafeString();
 
     return await this.shortLinkService.createLink({
       longLink: linkData.longLink,
       shortKey,
+      description: linkData.description,
       user: {
         connect: { login: linkData.login },
       },
