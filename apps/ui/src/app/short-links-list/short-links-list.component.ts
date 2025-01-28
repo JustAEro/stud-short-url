@@ -13,7 +13,7 @@ import { LucideAngularModule } from 'lucide-angular';
   template: `
     <div class="container">
       <ng-container *ngIf="loading; else content">
-        <p>Loading...</p>
+        <p>Загрузка...</p>
       </ng-container>
 
       <ng-template #content>
@@ -25,7 +25,7 @@ import { LucideAngularModule } from 'lucide-angular';
             <a [routerLink]="['/short-links', link.id]">
               <h3>{{ link.description || link.shortKey }}</h3>
             </a>
-            <p style="display: inline-flex; align-items: center; gap: 3px;">Short path: 
+            <p style="display: inline-flex; align-items: center; gap: 3px;">Короткая ссылка: 
               <a href="{{ origin + '/' + link.shortKey }}">
                 {{ origin + '/' + link.shortKey }}
               </a>
@@ -33,8 +33,8 @@ import { LucideAngularModule } from 'lucide-angular';
                 <lucide-icon class="copy-short-link-button_icon" name="clipboard-copy"></lucide-icon>
               </button>
             </p>
-            <p>Full Path: <a href="{{ link.longLink }}">{{ link.longLink }}</a></p>
-            <p style="margin-top: 10px;">Created: {{ link.createdAt | date: 'medium' }}</p>
+            <p>Целевая ссылка: <a href="{{ link.longLink }}">{{ link.longLink }}</a></p>
+            <p style="margin-top: 10px;">Дата создания: {{ link.createdAt | date: 'medium' }}</p>
           </li>
         </ul>
       </ng-template>

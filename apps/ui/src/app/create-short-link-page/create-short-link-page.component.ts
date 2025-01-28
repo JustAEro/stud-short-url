@@ -13,34 +13,34 @@ import { CreateShortLinkDto } from '@stud-short-url/common';
   template: `
     <app-header></app-header>
     <div class="container">
-      <button class="back-btn" (click)="goBack()">← Back</button>
-      <h1>Create a New Short Link</h1>
+      <button class="back-btn" (click)="goBack()">← Назад</button>
+      <h1>Создать новую короткую ссылку</h1>
       <form [formGroup]="shortLinkForm" (ngSubmit)="onSubmit()">
         <div class="form-group">
-          <label for="longUrl">Long URL</label>
+          <label for="longUrl">Целевая ссылка</label>
           <input
             id="longUrl"
             type="url"
             formControlName="longUrl"
-            placeholder="Enter the long URL"
+            placeholder="Введите целевую ссылку"
             required
           />
           <div class="error" *ngIf="shortLinkForm.get('longUrl')?.invalid && shortLinkForm.get('longUrl')?.touched">
-            Long URL is required and must be valid.
+            Целевая ссылка необходима и должна быть валидной (http или https).
           </div>
         </div>
 
         <div class="form-group">
-          <label for="description">Description (Optional)</label>
+          <label for="description">Описание (Опционально)</label>
           <input
             id="description"
             type="text"
             formControlName="description"
-            placeholder="Enter a short description"
+            placeholder="Введите описание ссылки (например, для чего ссылка будет использоваться)"
           />
         </div>
 
-        <button type="submit" class="create-btn" [disabled]="shortLinkForm.invalid">Create</button>
+        <button type="submit" class="create-btn" [disabled]="shortLinkForm.invalid">Создать</button>
       </form>
     </div>
   `,

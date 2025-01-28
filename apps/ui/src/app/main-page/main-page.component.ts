@@ -8,15 +8,21 @@ import { LucideAngularModule } from 'lucide-angular';
 @Component({
   selector: 'app-main-page',
   standalone: true,
-  imports: [CommonModule, RouterModule, HeaderComponent, ShortLinksListComponent, LucideAngularModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    HeaderComponent,
+    ShortLinksListComponent,
+    LucideAngularModule,
+  ],
   template: `
     <app-header></app-header>
     <main class="main-content">
       <div class="action-bar">
-        <h2 class="title">Your Short Links</h2>
+        <h2 class="title">Ваши короткие ссылки</h2>
         <button class="create-btn" routerLink="/create">
           <lucide-icon name="plus" class="icon"></lucide-icon>
-          Create Short Link
+          Создать короткую ссылку
         </button>
       </div>
       <app-short-links-list></app-short-links-list>
@@ -24,7 +30,7 @@ import { LucideAngularModule } from 'lucide-angular';
   `,
   styles: [
     `
-    .title {
+      .title {
         margin: 0;
         font-size: 1.5rem;
         font-weight: bold;

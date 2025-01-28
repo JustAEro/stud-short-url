@@ -23,18 +23,18 @@ import { LucideAngularModule} from 'lucide-angular';
             *ngIf="menuOpen" 
             (click)="onMenuClick($event)"
           >
-            <p class="user-info">Welcome, {{ userName }}</p>
+            <p class="user-info">{{ userName }}</p>
             <a 
               class="menu-item" 
               (click)="navigateToProfile($event)" 
             >
-              Profile
+              Профиль
             </a>
             <button 
               class="menu-item logout-btn" 
               (click)="logout($event)"
             >
-              Logout
+              Выйти
             </button>
           </div>
         </div>
