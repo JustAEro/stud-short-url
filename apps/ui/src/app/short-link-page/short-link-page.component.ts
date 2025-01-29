@@ -30,7 +30,18 @@ Chart.register(...registerables);
   template: `
     <app-header></app-header>
     <div class="container">
-      <button class="back-btn" (click)="goBack()">← Назад</button>
+      <div style="display: flex; justify-content: space-between; align-items: start;">
+        <button class="back-btn" (click)="goBack()">← Назад</button>
+        <div style="display: flex; flex-direction: column;">
+          <p style="margin-top: 10px;">
+            <strong>Дата создания: &nbsp;&nbsp;&nbsp;&nbsp;</strong>{{ link.createdAt | date : 'dd-MM-YYYY HH:mm:ss' }}
+          </p>
+          <p style="margin-top: 10px;">
+            <strong>Дата изменения: &nbsp;</strong>{{ link.updatedAt | date : 'dd-MM-YYYY HH:mm:ss' }}
+          </p>
+        </div>
+      </div>
+
       <h1>
         Данные короткой ссылки
         <a class="copy-link" href="{{ origin + '/' + link.shortKey }}">
@@ -108,6 +119,7 @@ Chart.register(...registerables);
 
       .back-btn {
         display: inline-block;
+        margin-top: 4px;
         margin-bottom: 1rem;
         padding: 0.5rem 1rem;
         background: #f5f5f5;

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ShortLinkDto } from '@stud-short-url/common';
-import {MatSnackBarModule, MatSnackBar} from '@angular/material/snack-bar'
+import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { LucideAngularModule } from 'lucide-angular';
 
 @Component({
@@ -25,17 +25,33 @@ import { LucideAngularModule } from 'lucide-angular';
             <a [routerLink]="['/short-links', link.shortKey]">
               <h3>{{ link.description || link.shortKey }}</h3>
             </a>
-            <p style="display: inline-flex; align-items: center; gap: 3px;">Короткая ссылка: 
+            <p style="display: inline-flex; align-items: center; gap: 3px;">
+              <strong>Короткая ссылка:</strong>
               <a href="{{ origin + '/' + link.shortKey }}">
                 {{ origin + '/' + link.shortKey }}
               </a>
-              <button class="copy-short-link-button" (click)="copyToClipboard(origin + '/' + link.shortKey)">
-                <lucide-icon class="copy-short-link-button_icon" name="clipboard-copy"></lucide-icon>
+              <button
+                class="copy-short-link-button"
+                (click)="copyToClipboard(origin + '/' + link.shortKey)"
+              >
+                <lucide-icon
+                  class="copy-short-link-button_icon"
+                  name="clipboard-copy"
+                ></lucide-icon>
               </button>
             </p>
-            <p>Целевая ссылка: <a href="{{ link.longLink }}">{{ link.longLink }}</a></p>
-            <p style="margin-top: 10px;">Дата создания: {{ link.createdAt | date: 'dd-MM-YYYY HH:mm:ss' }}</p>
-            <p style="margin-top: 10px;">Дата изменения: {{ link.updatedAt | date: 'dd-MM-YYYY HH:mm:ss' }}</p>
+            <p>
+              <strong>Целевая ссылка: </strong>
+              <a href="{{ link.longLink }}">{{ link.longLink }}</a>
+            </p>
+            <p style="margin-top: 10px;">
+              <strong>Дата создания:</strong>
+              {{ link.createdAt | date : 'dd-MM-YYYY HH:mm:ss' }}
+            </p>
+            <p style="margin-top: 10px;">
+              <strong>Дата изменения:</strong>
+              {{ link.updatedAt | date : 'dd-MM-YYYY HH:mm:ss' }}
+            </p>
           </li>
         </ul>
       </ng-template>
@@ -121,8 +137,8 @@ export class ShortLinksListComponent implements OnInit {
           duration: 2000, // Уведомление будет показываться 2 секунды
           horizontalPosition: 'center',
           verticalPosition: 'bottom',
-          panelClass: ['success-toast']
-        })
+          panelClass: ['success-toast'],
+        });
       },
       (err) => console.error('Ошибка при копировании в буфер обмена', err)
     );
