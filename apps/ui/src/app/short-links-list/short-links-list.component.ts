@@ -22,7 +22,7 @@ import { LucideAngularModule } from 'lucide-angular';
         </div>
         <ul *ngIf="shortLinks.length > 0" class="short-links-list">
           <li *ngFor="let link of shortLinks" class="short-link-item">
-            <a [routerLink]="['/short-links', link.id]">
+            <a [routerLink]="['/short-links', link.shortKey]">
               <h3>{{ link.description || link.shortKey }}</h3>
             </a>
             <p style="display: inline-flex; align-items: center; gap: 3px;">Короткая ссылка: 
