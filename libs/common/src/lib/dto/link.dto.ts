@@ -4,6 +4,7 @@ export type ShortLinkDto = {
   shortKey: string;
   createdByUserId: string;
   createdAt: Date;
+  updatedAt: Date;
   description: string;
 };
 

@@ -20,6 +20,7 @@ model ShortLink {
   shortKey        String     @unique
   createdByUserId String
   createdAt       DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime   @updatedAt @default(now()) @db.Timestamptz(6)
   description     String
   linkStats       LinkStat[]
   user            User       @relation(fields: [createdByUserId], references: [id])

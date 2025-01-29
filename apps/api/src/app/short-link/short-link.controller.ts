@@ -52,6 +52,19 @@ export class ShortLinkController {
     return link;
   }
 
+  @Get('no-stats/:shortKey')
+  async getLinkByShortKeyWithoutStatsUpdate(
+    @Param('shortKey') shortKey: string
+  ): Promise<ShortLinkDto> {
+    const link = await this.shortLinkService.getLink({ shortKey });
+
+    if (!link) {
+      throw new NotFoundException('link not found');
+    }
+
+    return link;
+  }
+
   @Post()
   async createLink(@Body() linkData: CreateShortLinkDto) {
     const shortKey = this.shortLinkService.generateUrlSafeString();

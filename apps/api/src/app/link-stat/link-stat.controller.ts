@@ -1,5 +1,12 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 
 @Controller('link-stat')
 export class LinkStatController {
@@ -10,31 +17,55 @@ export class LinkStatController {
     @Param('shortKey') shortKey: string,
     @Query('timeScale') timeScale: 'hour' | 'day' | 'month'
   ) {
-
-    console.log(shortKey);
-
-    const shortLink = await this.prisma.shortLink.findUnique({where: {shortKey}});
+    const shortLink = await this.prisma.shortLink.findUnique({
+      where: { shortKey },
+    });
 
     if (!shortLink) {
-        throw new NotFoundException(`Short link with key '${shortKey}' not found`);
+      throw new NotFoundException(
+        `Short link with key '${shortKey}' not found`
+      );
     }
 
-    console.log(shortLink);
-
-    const groupBy = {
-      hour: `DATE_TRUNC('hour', clickedAt)`,
-      day: `DATE_TRUNC('day', clickedAt)`,
-      month: `DATE_TRUNC('month', clickedAt)`,
+    // Определяем параметры для группировки
+    const timeScaleQuery = {
+      hour: Prisma.sql`'hour'`,
+      day: Prisma.sql`'day'`,
+      month: Prisma.sql`'month'`,
     }[timeScale];
 
-    const stats: Array<{ period: string; clicks: number }> = await this.prisma.$queryRaw`
-      SELECT TO_CHAR(${groupBy}::timestamp, 'YYYY-MM-DD HH24:MI:SS') AS period, COUNT(*)::int AS clicks
-      FROM "LinkStat"
-      WHERE "shortLinkId" = ${shortLink.id}
-      GROUP BY period
-      ORDER BY period`;
+    const interval = {
+      hour: Prisma.sql`INTERVAL '1 hour'`,
+      day: Prisma.sql`INTERVAL '1 day'`,
+      month: Prisma.sql`INTERVAL '1 month'`,
+    }[timeScale];
 
-    console.log(stats);
+    const format = {
+      hour: Prisma.sql`'DD-MM-YYYY HH24:MI:SS'`,
+      day: Prisma.sql`'DD-MM-YYYY'`,
+      month: Prisma.sql`'MM-YYYY'`,
+    }[timeScale];
+
+    // Запрос с генерацией временного ряда
+    const stats: Array<{ period: string; clicks: number }> = await this.prisma
+      .$queryRaw`
+    WITH time_series AS (
+      SELECT generate_series(
+        (SELECT MIN(DATE_TRUNC(${timeScaleQuery}, "clickedAt")) FROM "LinkStat" WHERE "shortLinkId" = ${shortLink.id}),
+        NOW(),
+        ${interval}
+      ) AS period
+    )
+    SELECT 
+      TO_CHAR(t.period, ${format}) AS period, 
+      COALESCE(COUNT(l."id")::int, 0) AS clicks
+    FROM time_series t
+    LEFT JOIN "LinkStat" l 
+      ON DATE_TRUNC(${timeScaleQuery}, l."clickedAt") = t.period 
+      AND l."shortLinkId" = ${shortLink.id}
+    GROUP BY t.period
+    ORDER BY t.period;
+  `;
 
     return {
       labels: stats.map((stat) => stat.period),

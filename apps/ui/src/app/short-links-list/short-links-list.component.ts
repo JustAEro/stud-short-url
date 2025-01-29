@@ -34,7 +34,8 @@ import { LucideAngularModule } from 'lucide-angular';
               </button>
             </p>
             <p>Целевая ссылка: <a href="{{ link.longLink }}">{{ link.longLink }}</a></p>
-            <p style="margin-top: 10px;">Дата создания: {{ link.createdAt | date: 'medium' }}</p>
+            <p style="margin-top: 10px;">Дата создания: {{ link.createdAt | date: 'dd-MM-YYYY HH:mm:ss' }}</p>
+            <p style="margin-top: 10px;">Дата изменения: {{ link.updatedAt | date: 'dd-MM-YYYY HH:mm:ss' }}</p>
           </li>
         </ul>
       </ng-template>
