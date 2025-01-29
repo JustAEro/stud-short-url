@@ -13,3 +13,8 @@ export type CreateShortLinkDto = {
   longLink: string; 
   description: string;
 };
+
+export type UpdateShortLinkDto = { 
+  longLink: string; 
+  description: string;
+};

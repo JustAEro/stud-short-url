@@ -12,7 +12,7 @@ import {
 import { ShortLinkService } from './short-link.service';
 import { LinkStatService } from '../link-stat/link-stat.service';
 import { UAParser } from 'ua-parser-js';
-import { CreateShortLinkDto, ShortLinkDto } from '@stud-short-url/common';
+import { CreateShortLinkDto, ShortLinkDto, UpdateShortLinkDto } from '@stud-short-url/common';
 
 @Controller('short-links')
 export class ShortLinkController {
@@ -82,8 +82,8 @@ export class ShortLinkController {
   @Put(':shortKey')
   async updateLinkByShortKey(
     @Param('shortKey') shortKey: string,
-    @Body() linkData: { longLink: string }
-  ) {
+    @Body() linkData: UpdateShortLinkDto,
+  ): Promise<ShortLinkDto> {
     return await this.shortLinkService.updateLink({
       where: { shortKey },
       data: linkData,

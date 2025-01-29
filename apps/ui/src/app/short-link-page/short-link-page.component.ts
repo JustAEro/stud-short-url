@@ -10,7 +10,7 @@ import {
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables, ChartType } from 'chart.js';
-import { ShortLinkDto } from '@stud-short-url/common';
+import { ShortLinkDto, UpdateShortLinkDto } from '@stud-short-url/common';
 import { HeaderComponent } from '../header/header.component';
 import { LucideAngularModule } from 'lucide-angular';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -149,7 +149,7 @@ Chart.register(...registerables);
       }
 
       input {
-        width: 100%;
+        width: 98%;
         padding: 0.5rem;
         border: 1px solid #ddd;
         border-radius: 8px;
@@ -229,7 +229,7 @@ export class ShortLinkPageComponent implements OnInit {
 
     // Инициализация формы
     this.shortLinkForm = this.fb.group({
-      longUrl: ['', Validators.required],
+      longUrl: ['', [Validators.required, Validators.pattern(/^(http|https):\/\/[^\s$.?#].[^\s]*$/)]],
       description: [''],
     });
 
@@ -257,10 +257,21 @@ export class ShortLinkPageComponent implements OnInit {
     const shortLinkId = this.route.snapshot.paramMap.get('id');
     if (!shortLinkId) return;
 
+    const updateRequestBody: UpdateShortLinkDto = {
+      longLink: this.shortLinkForm.value.longUrl,
+      description: this.shortLinkForm.value.description,
+    }
+
     this.http
-      .put(`/api/short-links/${shortLinkId}`, this.shortLinkForm.value)
-      .subscribe(() => {
-        alert('Link updated successfully');
+      .put<ShortLinkDto>(`/api/v1/short-links/${shortLinkId}`, updateRequestBody)
+      .subscribe((link) => {
+        this.link = link;
+
+        this.shortLinkForm.patchValue({
+          longUrl: link.longLink,
+          description: link.description,
+        });
+
         this.shortLinkForm.markAsPristine();
       });
   }
