@@ -14,6 +14,8 @@ import { ShortLinkDto, UpdateShortLinkDto } from '@stud-short-url/common';
 import { HeaderComponent } from '../header/header.component';
 import { LucideAngularModule } from 'lucide-angular';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatDialog } from '@angular/material/dialog';
+import { DeleteConfirmationDialogComponent } from './delete-confirmation-dialog.component';
 
 Chart.register(...registerables);
 
@@ -30,32 +32,42 @@ Chart.register(...registerables);
   template: `
     <app-header></app-header>
     <div class="container">
-      <div style="display: flex; justify-content: space-between; align-items: start;">
+      <div
+        style="display: flex; justify-content: space-between; align-items: start;"
+      >
         <button class="back-btn" (click)="goBack()">← Назад</button>
         <div style="display: flex; flex-direction: column;">
           <p style="margin-top: 10px;">
-            <strong>Дата создания: &nbsp;&nbsp;&nbsp;&nbsp;</strong>{{ link.createdAt | date : 'dd-MM-YYYY HH:mm:ss' }}
+            <strong>Дата создания: &nbsp;&nbsp;&nbsp;&nbsp;</strong
+            >{{ link.createdAt | date : 'dd-MM-YYYY HH:mm:ss' }}
           </p>
           <p style="margin-top: 10px;">
-            <strong>Дата изменения: &nbsp;</strong>{{ link.updatedAt | date : 'dd-MM-YYYY HH:mm:ss' }}
+            <strong>Дата изменения: &nbsp;</strong
+            >{{ link.updatedAt | date : 'dd-MM-YYYY HH:mm:ss' }}
           </p>
         </div>
       </div>
 
       <h1>
         Данные короткой ссылки
-        <a class="copy-link" href="{{ origin + '/' + link.shortKey }}">
-          {{ origin + '/' + link.shortKey }}
-        </a>
-        <button
-          class="copy-short-link-button"
-          (click)="copyToClipboard(origin + '/' + link.shortKey)"
-        >
-          <lucide-icon
-            class="copy-short-link-button_icon"
-            name="clipboard-copy"
-          ></lucide-icon>
-        </button>
+        <div style="display: flex; align-items: baseline; justify-content: center; gap: 10px;">
+          <a class="copy-link" href="{{ origin + '/' + link.shortKey }}">
+            {{ origin + '/' + link.shortKey }}
+          </a>
+          <button
+            class="copy-short-link-button"
+            (click)="copyToClipboard(origin + '/' + link.shortKey)"
+          >
+            <lucide-icon
+              class="copy-short-link-button_icon"
+              name="clipboard-copy"
+            ></lucide-icon>
+          </button>
+
+          <button class="delete-btn" (click)="confirmDelete()">
+            <lucide-icon name="trash"></lucide-icon>
+          </button>
+        </div>
       </h1>
 
       <form [formGroup]="shortLinkForm" (ngSubmit)="onUpdate()">
@@ -201,6 +213,14 @@ Chart.register(...registerables);
       .copy-link {
         text-decoration: none;
         color: #007bff;
+        margin-left: 30px;
+      }
+
+      .delete-btn {
+        border: none;
+        background-color: transparent;
+        cursor: pointer;
+        color: red;
       }
     `,
   ],
@@ -218,7 +238,8 @@ export class ShortLinkPageComponent implements OnInit {
     private router: Router,
     private route: ActivatedRoute,
     private http: HttpClient,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    public dialog: MatDialog
   ) {}
 
   ngOnInit() {
@@ -229,7 +250,13 @@ export class ShortLinkPageComponent implements OnInit {
 
     // Инициализация формы
     this.shortLinkForm = this.fb.group({
-      longUrl: ['', [Validators.required, Validators.pattern(/^(http|https):\/\/[^\s$.?#].[^\s]*$/)]],
+      longUrl: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(/^(http|https):\/\/[^\s$.?#].[^\s]*$/),
+        ],
+      ],
       description: [''],
     });
 
@@ -249,6 +276,28 @@ export class ShortLinkPageComponent implements OnInit {
     this.fetchStatistics();
   }
 
+  confirmDelete() {
+    const dialogRef = this.dialog.open(DeleteConfirmationDialogComponent);
+    dialogRef.afterClosed().subscribe((confirmed) => {
+      if (confirmed) {
+        this.deleteShortLink();
+      }
+    });
+  }
+
+  deleteShortLink() {
+    const shortLinkId = this.route.snapshot.paramMap.get('id');
+    if (!shortLinkId) return;
+
+    this.http.delete(`/api/v1/short-links/${shortLinkId}`).subscribe(() => {
+      this.snackBar.open('Ссылка удалена', '', {
+        duration: 2000,
+        panelClass: ['delete-toast'],
+      });
+      this.router.navigate(['/']);
+    });
+  }
+
   goBack() {
     this.router.navigate(['../']);
   }
@@ -260,10 +309,13 @@ export class ShortLinkPageComponent implements OnInit {
     const updateRequestBody: UpdateShortLinkDto = {
       longLink: this.shortLinkForm.value.longUrl,
       description: this.shortLinkForm.value.description,
-    }
+    };
 
     this.http
-      .put<ShortLinkDto>(`/api/v1/short-links/${shortLinkId}`, updateRequestBody)
+      .put<ShortLinkDto>(
+        `/api/v1/short-links/${shortLinkId}`,
+        updateRequestBody
+      )
       .subscribe((link) => {
         this.link = link;
 

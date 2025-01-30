@@ -33,5 +33,5 @@ model LinkStat {
   browser     String
   referrer    String?
   deviceType  String
-  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id])
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
 }
