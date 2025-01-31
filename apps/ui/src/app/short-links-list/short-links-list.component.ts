@@ -1,15 +1,23 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { ShortLinkDto } from '@stud-short-url/common';
 import { MatSnackBarModule, MatSnackBar } from '@angular/material/snack-bar';
 import { LucideAngularModule } from 'lucide-angular';
+import { FormsModule } from '@angular/forms';
+import { debounceTime, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-short-links-list',
   standalone: true,
-  imports: [CommonModule, RouterModule, MatSnackBarModule, LucideAngularModule],
+  imports: [
+    CommonModule,
+    RouterModule,
+    MatSnackBarModule,
+    LucideAngularModule,
+    FormsModule,
+  ],
   template: `
     <div class="container">
       <ng-container *ngIf="loading; else content">
@@ -20,6 +28,40 @@ import { LucideAngularModule } from 'lucide-angular';
         <div *ngIf="shortLinks.length === 0">
           <p>No short links found.</p>
         </div>
+
+        <div *ngIf="shortLinks.length > 0">
+          <label for="sort">Сортировка:</label>
+          <select id="sort" [(ngModel)]="sortBy" (change)="loadShortLinks()">
+            <option value="updatedAt">По дате обновления</option>
+            <option value="createdAt">По дате создания</option>
+            <option value="description">По описанию</option>
+          </select>
+        </div>
+
+        <div *ngIf="shortLinks.length > 0">
+          <label for="order">Порядок сортировки:</label>
+          <select id="order" [(ngModel)]="sortDirection" (change)="loadShortLinks()">
+            <option value="asc">
+              @if (sortBy === "updatedAt" || sortBy === "createdAt") {
+                От более давних к менее давним
+              }
+              @else {
+                A-Z
+              }
+            </option>
+            <option value="desc">
+              @if (sortBy === "updatedAt" || sortBy === "createdAt") {
+                От менее давних к более давним
+              }
+              @else {
+                Z-A
+              }
+            </option>
+          </select>
+        </div>
+
+        <input style="width: 100%;" #searchInput [(ngModel)]="searchQuery" (input)="onSearchChange()" placeholder="Поиск (введите часть описания или ключа короткой ссылки) ..." />
+        
         <ul *ngIf="shortLinks.length > 0" class="short-links-list">
           <li *ngFor="let link of shortLinks" class="short-link-item">
             <a [routerLink]="['/short-links', link.shortKey]">
@@ -105,29 +147,42 @@ import { LucideAngularModule } from 'lucide-angular';
   ],
 })
 export class ShortLinksListComponent implements OnInit {
+  @ViewChild('searchInput') searchInput!: ElementRef;
+
   shortLinks: ShortLinkDto[] = [];
   loading = false;
   origin = window.location.origin;
+  sortBy = 'updatedAt';
+  sortDirection = 'desc';
+  searchQuery = '';
+  searchSubject = new Subject<string>();
 
   constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
 
   ngOnInit(): void {
+    this.searchSubject.pipe(debounceTime(500)).subscribe(() => {
+      this.loadShortLinks();
+    });
+    
     this.loadShortLinks();
   }
 
   loadShortLinks(): void {
     this.loading = true;
 
-    this.http.get<ShortLinkDto[]>('/api/v1/short-links').subscribe({
-      next: (data) => {
-        this.shortLinks = data;
-        this.loading = false;
-      },
-      error: (err) => {
-        console.error('Failed to load short links:', err);
-        this.loading = false;
-      },
-    });
+    this.http
+      .get<ShortLinkDto[]>(`/api/v1/short-links?sortBy=${this.sortBy}&sortDirection=${this.sortDirection}&search=${this.searchQuery}`)
+      .subscribe({
+        next: (data) => {
+          this.shortLinks = data;
+          this.loading = false;
+          setTimeout(() => this.searchInput.nativeElement.focus(), 0);
+        },
+        error: (err) => {
+          console.error('Failed to load short links:', err);
+          this.loading = false;
+        },
+      });
   }
 
   copyToClipboard(link: string): void {
@@ -142,5 +197,9 @@ export class ShortLinksListComponent implements OnInit {
       },
       (err) => console.error('Ошибка при копировании в буфер обмена', err)
     );
+  }
+
+  onSearchChange(): void {
+    this.searchSubject.next(this.searchQuery);
   }
 }

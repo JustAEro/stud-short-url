@@ -7,12 +7,17 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Req,
 } from '@nestjs/common';
 import { ShortLinkService } from './short-link.service';
 import { LinkStatService } from '../link-stat/link-stat.service';
 import { UAParser } from 'ua-parser-js';
-import { CreateShortLinkDto, ShortLinkDto, UpdateShortLinkDto } from '@stud-short-url/common';
+import {
+  CreateShortLinkDto,
+  ShortLinkDto,
+  UpdateShortLinkDto,
+} from '@stud-short-url/common';
 
 @Controller('short-links')
 export class ShortLinkController {
@@ -22,8 +27,15 @@ export class ShortLinkController {
   ) {}
 
   @Get()
-  async getAllShortLinks() {
-    return await this.shortLinkService.getAllLinks();
+  async getAllShortLinks(
+    @Query('sortBy')
+    sortBy: 'updatedAt' | 'createdAt' | 'description' | undefined,
+    @Query('sortDirection')
+    direction: 'asc' | 'desc' | undefined,
+    @Query('search')
+    search = '',
+  ) {
+    return await this.shortLinkService.findAllSorted({sortBy, direction, search});
   }
 
   @Get(':shortKey')
@@ -82,7 +94,7 @@ export class ShortLinkController {
   @Put(':shortKey')
   async updateLinkByShortKey(
     @Param('shortKey') shortKey: string,
-    @Body() linkData: UpdateShortLinkDto,
+    @Body() linkData: UpdateShortLinkDto
   ): Promise<ShortLinkDto> {
     return await this.shortLinkService.updateLink({
       where: { shortKey },
