@@ -22,11 +22,13 @@ export class ShortLinkService {
     return links;
   }
 
-  async findAllSorted({sortBy, direction, search}:
+  async findAllSorted({sortBy, direction, search, page, limit}:
     {
         sortBy: 'updatedAt' | 'createdAt' | 'description' | undefined,
         direction: 'asc' | 'desc' | undefined,
-        search: string
+        search: string,
+        page: number,
+        limit: number,
     }
   ) {
     const orderBy = this.getOrderBy({sortBy, direction});
@@ -40,7 +42,14 @@ export class ShortLinkService {
         }
       : {};
 
-    const sortedLinks = await this.prismaService.shortLink.findMany({ orderBy, where });
+    const totalCount = await this.prismaService.shortLink.count({ where });
+
+    const sortedLinks = await this.prismaService.shortLink.findMany({ 
+      orderBy, 
+      where,
+      skip: (page - 1) * limit,
+      take: Number(limit), // to pass prisma validation
+    });
 
     if (sortBy === 'description') {
       sortedLinks.sort((a, b) => {
@@ -59,7 +68,11 @@ export class ShortLinkService {
       });
     }
 
-    return sortedLinks;
+    return {
+      data: sortedLinks,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: Number(page),
+    };
   }
 
   private getOrderBy(

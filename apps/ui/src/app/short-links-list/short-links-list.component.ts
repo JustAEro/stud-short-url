@@ -96,6 +96,17 @@ import { debounceTime, Subject } from 'rxjs';
             </p>
           </li>
         </ul>
+        
+        @if (shortLinks.length > 0 && totalPages > 1) {
+          <div class="pagination">
+            <button (click)="prevPage()" [disabled]="page === 1">Назад</button>
+            <span>Страница</span>
+            <select [(ngModel)]="page" (change)="loadShortLinks()" [disabled]="totalPages === 1">
+              <option *ngFor="let p of totalPagesArray" [value]="p">{{ p }}</option>
+            </select>
+            <button (click)="nextPage()" [disabled]="page === totalPages">Вперед</button>
+          </div>
+        }
       </ng-template>
     </div>
   `,
@@ -143,6 +154,17 @@ import { debounceTime, Subject } from 'rxjs';
         --mdc-snackbar-container-color: #007bff;
         color: white;
       }
+
+      .pagination { 
+        display: flex; 
+        justify-content: center; 
+        align-items: center; 
+        margin-top: 1rem; 
+        gap: 10px; 
+      }
+      .pagination button, .pagination select { 
+        padding: 5px 10px; 
+      }
     `,
   ],
 })
@@ -156,6 +178,9 @@ export class ShortLinksListComponent implements OnInit {
   sortDirection = 'desc';
   searchQuery = '';
   searchSubject = new Subject<string>();
+  page = 1;
+  limit = 5;
+  totalPages = 1;
 
   constructor(private http: HttpClient, private snackBar: MatSnackBar) {}
 
@@ -171,12 +196,14 @@ export class ShortLinksListComponent implements OnInit {
     this.loading = true;
 
     this.http
-      .get<ShortLinkDto[]>(`/api/v1/short-links?sortBy=${this.sortBy}&sortDirection=${this.sortDirection}&search=${this.searchQuery}`)
+      .get<{ data: ShortLinkDto[], totalPages: number, currentPage: number }>(`/api/v1/short-links?sortBy=${this.sortBy}&sortDirection=${this.sortDirection}&search=${this.searchQuery}&page=${this.page}&limit=${this.limit}`)
       .subscribe({
-        next: (data) => {
-          this.shortLinks = data;
+        next: (response) => {
+          this.shortLinks = response.data;
+          this.totalPages = response.totalPages;
+          this.page = response.currentPage
           this.loading = false;
-          setTimeout(() => this.searchInput.nativeElement.focus(), 0);
+          setTimeout(() => this.searchInput?.nativeElement.focus(), 0);
         },
         error: (err) => {
           console.error('Failed to load short links:', err);
@@ -201,5 +228,23 @@ export class ShortLinksListComponent implements OnInit {
 
   onSearchChange(): void {
     this.searchSubject.next(this.searchQuery);
+  }
+
+  get totalPagesArray(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  prevPage(): void {
+    if (this.page > 1) {
+      this.page--;
+      this.loadShortLinks();
+    }
+  }
+
+  nextPage(): void {
+    if (this.page < this.totalPages) {
+      this.page++;
+      this.loadShortLinks();
+    }
   }
 }

@@ -30,12 +30,20 @@ export class ShortLinkController {
   async getAllShortLinks(
     @Query('sortBy')
     sortBy: 'updatedAt' | 'createdAt' | 'description' | undefined,
+
     @Query('sortDirection')
     direction: 'asc' | 'desc' | undefined,
+
     @Query('search')
     search = '',
+
+    @Query('page') 
+    page = 1,
+
+    @Query('limit') 
+    limit = 5,
   ) {
-    return await this.shortLinkService.findAllSorted({sortBy, direction, search});
+    return await this.shortLinkService.findAllSorted({sortBy, direction, search, page, limit});
   }
 
   @Get(':shortKey')
