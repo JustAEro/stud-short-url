@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcryptjs';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 @Injectable()
 export class AuthService {
@@ -37,9 +38,15 @@ export class AuthService {
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(password, salt);
 
-    return this.prisma.user.create({
-      data: { login, password: hashedPassword },
-    });
+    try {
+      const user = await this.prisma.user.create({
+        data: { login, password: hashedPassword },
+      });
+
+      return user;
+    } catch (error) {
+      throw new ConflictException('Пользователь с таким логином уже существует');
+    }
   }
 
   async logout(userId: string) {
