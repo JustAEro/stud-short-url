@@ -7,6 +7,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -18,7 +19,7 @@ import { RouterLink } from '@angular/router';
 export class RegisterComponent {
   registerForm: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private authService: AuthService) {
     this.registerForm = this.fb.group({
       email: ['', [Validators.required]],
       password: ['', [Validators.required, Validators.minLength(6)]],
@@ -43,5 +44,7 @@ export class RegisterComponent {
     const { email, password } = this.registerForm.value;
     console.log('Registering user:', { email, password });
     // Добавьте вызов сервиса для регистрации
+
+    this.authService.register({login: email, password});
   }
 }

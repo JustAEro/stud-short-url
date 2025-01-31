@@ -9,6 +9,7 @@ import {
   Put,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ShortLinkService } from './short-link.service';
 import { LinkStatService } from '../link-stat/link-stat.service';
@@ -18,6 +19,7 @@ import {
   ShortLinkDto,
   UpdateShortLinkDto,
 } from '@stud-short-url/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('short-links')
 export class ShortLinkController {
@@ -26,6 +28,7 @@ export class ShortLinkController {
     private readonly linkStatService: LinkStatService
   ) {}
 
+  @UseGuards(JwtAuthGuard)
   @Get()
   async getAllShortLinks(
     @Query('sortBy')
@@ -72,6 +75,7 @@ export class ShortLinkController {
     return link;
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('no-stats/:shortKey')
   async getLinkByShortKeyWithoutStatsUpdate(
     @Param('shortKey') shortKey: string
@@ -85,6 +89,7 @@ export class ShortLinkController {
     return link;
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post()
   async createLink(@Body() linkData: CreateShortLinkDto) {
     const shortKey = this.shortLinkService.generateUrlSafeString();
@@ -99,6 +104,7 @@ export class ShortLinkController {
     });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Put(':shortKey')
   async updateLinkByShortKey(
     @Param('shortKey') shortKey: string,
@@ -110,6 +116,7 @@ export class ShortLinkController {
     });
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':shortKey')
   async deleteLinkByShortKey(@Param('shortKey') shortKey: string) {
     return await this.shortLinkService.deleteLink({ shortKey });

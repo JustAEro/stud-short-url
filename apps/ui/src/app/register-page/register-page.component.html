@@ -1,5 +1,5 @@
 <div class="auth-container">
-  <h2>Register</h2>
+  <h2>Регистрация</h2>
 
   <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
     <div class="form-group">
@@ -20,7 +20,7 @@
         "
       >
         <small *ngIf="registerForm.get('email')?.errors?.['required']"
-          >Логин обязателен.</small
+          >Введите логин.</small
         >
         <small *ngIf="registerForm.get('email')?.errors?.['email']"
           >Invalid email format.</small
@@ -29,7 +29,7 @@
     </div>
 
     <div class="form-group">
-      <label for="password">Password</label>
+      <label for="password">Пароль</label>
       <input
         id="password"
         type="password"
@@ -46,16 +46,16 @@
         "
       >
         <small *ngIf="registerForm.get('password')?.errors?.['required']"
-          >Password is required.</small
+          >Введите пароль.</small
         >
         <small *ngIf="registerForm.get('password')?.errors?.['minlength']">
-          Password must be at least 6 characters.
+          Пароль должен иметь длину хотя бы 6 символов.
         </small>
       </div>
     </div>
 
     <div class="form-group">
-      <label for="confirmPassword">Confirm Password</label>
+      <label for="confirmPassword">Подтвердите пароль</label>
       <input
         id="confirmPassword"
         type="password"
@@ -72,20 +72,20 @@
         "
       >
         <small *ngIf="registerForm.get('confirmPassword')?.errors?.['required']"
-          >Confirm Password is required.</small
+          >Введите пароль.</small
         >
         <small *ngIf="registerForm.get('confirmPassword')?.errors?.['mismatch']"
-          >Passwords do not match.</small
+          >Пароли не совпадают.</small
         >
       </div>
     </div>
 
-    <button type="submit" [disabled]="registerForm.invalid">Register</button>
+    <button type="submit" [disabled]="registerForm.invalid">Зарегистрироваться</button>
   </form>
 
   <p>
     <a routerLink="/login" routerLinkActive="active"
-      >Already have an account? Login</a
+      >У вас уже есть аккаунт? Войти</a
     >
   </p>
 </div>

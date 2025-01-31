@@ -1,7 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { LucideAngularModule} from 'lucide-angular';
+import { AuthService } from '../auth/auth.service';
+import { Observable } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -13,8 +15,8 @@ import { LucideAngularModule} from 'lucide-angular';
       <nav class="nav">
         <div 
           class="profile-menu" 
-          (click)="toggleMenu()" 
-          (blur)="closeMenu()" 
+          (click)="toggleMenu($event)" 
+          (blur)="delayedCloseMenu()" 
           tabindex="0"
         >
           <lucide-icon name="user" class="profile-icon"></lucide-icon>
@@ -24,12 +26,12 @@ import { LucideAngularModule} from 'lucide-angular';
             (click)="onMenuClick($event)"
           >
             <p class="user-info">{{ userName }}</p>
-            <a 
+            <!-- <a 
               class="menu-item" 
               (click)="navigateToProfile($event)" 
             >
               Профиль
-            </a>
+            </a> -->
             <button 
               class="menu-item logout-btn" 
               (click)="logout($event)"
@@ -123,6 +125,7 @@ import { LucideAngularModule} from 'lucide-angular';
       }
 
       .logout-btn {
+        pointer-events: auto;
         width: 100%;
         text-align: left;
         background: none;
@@ -145,18 +148,34 @@ import { LucideAngularModule} from 'lucide-angular';
     `,
   ],
 })
-export class HeaderComponent {
+export class HeaderComponent implements OnInit {
   menuOpen = false;
-  userName = 'John Doe'; // Реальные данные пользователя можно получить из сервиса
+  userName$: Observable<string | null>;  // Реальные данные пользователя можно получить из сервиса
+  userName: string | null = '';
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private authService: AuthService) {
+    this.userName$ = this.authService.getUserLogin$();
+  }
 
-  toggleMenu() {
+  ngOnInit() {
+    this.authService.getUserLogin$().subscribe((login) => {
+      this.userName = login;
+    })
+  }
+
+  toggleMenu(event: MouseEvent) {
+    event.stopPropagation();
     this.menuOpen = !this.menuOpen;
   }
 
   closeMenu() {
     this.menuOpen = false;
+  }
+
+  delayedCloseMenu() {
+    setTimeout(() => {
+      this.closeMenu();
+    }, 200); // Даем Angular 200 мс на обработку клика
   }
 
   onMenuClick(event: MouseEvent) {
@@ -171,9 +190,10 @@ export class HeaderComponent {
   }
 
   logout(event: MouseEvent) {
-    event.stopPropagation(); // Останавливаем всплытие
-    this.closeMenu(); // Закрываем меню
-    console.log('User logged out');
+    event.stopPropagation();
+    //this.closeMenu(); // Закрываем меню
     // Добавьте реальную логику выхода
+    
+    this.authService.logout();
   }
 }

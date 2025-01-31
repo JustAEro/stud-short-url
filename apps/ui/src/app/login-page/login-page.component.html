@@ -1,9 +1,9 @@
 <div class="auth-container">
-  <h2>Login</h2>
+  <h2>Вход</h2>
 
   <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
     <div class="form-group">
-      <label for="email">Email</label>
+      <label for="email">Логин</label>
       <input
         id="email"
         type="email"
@@ -18,7 +18,7 @@
         "
       >
         <small *ngIf="loginForm.get('email')?.errors?.['required']"
-          >Email is required.</small
+          >Введите логин</small
         >
         <small *ngIf="loginForm.get('email')?.errors?.['email']"
           >Invalid email format.</small
@@ -27,7 +27,7 @@
     </div>
 
     <div class="form-group">
-      <label for="password">Password</label>
+      <label for="password">Пароль</label>
       <input
         id="password"
         type="password"
@@ -44,20 +44,20 @@
         "
       >
         <small *ngIf="loginForm.get('password')?.errors?.['required']"
-          >Password is required.</small
+          >Введите пароль.</small
         >
         <small *ngIf="loginForm.get('password')?.errors?.['minlength']">
-          Password must be at least 6 characters.
+          Пароль должен иметь длину хотя бы 6 символов.
         </small>
       </div>
     </div>
 
-    <button type="submit" [disabled]="loginForm.invalid">Login</button>
+    <button type="submit" [disabled]="loginForm.invalid">Войти</button>
   </form>
 
   <p>
     <a routerLink="/signup" routerLinkActive="active"
-      >Don't have an account? Register</a
+      >У вас нет аккаунта? Зарегистрируйтесь</a
     >
   </p>
 </div>

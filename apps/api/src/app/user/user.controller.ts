@@ -6,12 +6,15 @@ import {
     Param,
     Post,
     Put,
+    UseGuards,
   } from '@nestjs/common';
-  import { UserService } from './user.service';
-  import { User } from '@prisma/client';
+import { UserService } from './user.service';
+import { User } from '@prisma/client';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
   
-  @Controller('users')
-  export class UserController {
+@UseGuards(JwtAuthGuard)
+@Controller('users')
+export class UserController {
     constructor(private readonly userService: UserService) {}
   
     @Get()
@@ -44,4 +47,4 @@ import {
     async deleteUser(@Param('id') id: string): Promise<User> {
       return this.userService.deleteUser({ id });
     }
-  }
+}

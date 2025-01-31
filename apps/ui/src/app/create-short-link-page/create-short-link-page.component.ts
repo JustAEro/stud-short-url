@@ -5,6 +5,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { HttpClient } from '@angular/common/http';
 import { HeaderComponent } from '../header/header.component';
 import { CreateShortLinkDto } from '@stud-short-url/common';
+import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'app-create-short-link',
@@ -124,7 +125,8 @@ export class CreateShortLinkPageComponent {
   constructor(
     private fb: FormBuilder,
     private router: Router,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: AuthService,
   ) {
     this.shortLinkForm = this.fb.group({
       longUrl: ['', [Validators.required, Validators.pattern(/^(http|https):\/\/[^\s$.?#].[^\s]*$/)]],
@@ -140,23 +142,27 @@ export class CreateShortLinkPageComponent {
     if (this.shortLinkForm.valid) {
       const { longUrl, description } = this.shortLinkForm.value;
 
-      const requestBody: CreateShortLinkDto = {
-        login: 'aabb', // TODO: Замените на реальный логин текущего пользователя
-        description,
-        longLink: longUrl,
-      }
+      const login = this.authService.getUserLogin();
 
-      this.http
-        .post('/api/v1/short-links', requestBody)
-        .subscribe({
-          next: (response) => {
-            console.log('Short link created:', response);
-            this.router.navigate(['/']); // Перенаправление на главную страницу после успешного создания
-          },
-          error: (error) => {
-            console.error('Error creating short link:', error);
-          },
-        });
+      if (login) {
+        const requestBody: CreateShortLinkDto = {
+          login,
+          description,
+          longLink: longUrl,
+        }
+  
+        this.http
+          .post('/api/v1/short-links', requestBody)
+          .subscribe({
+            next: (response) => {
+              console.log('Short link created:', response);
+              this.router.navigate(['/']); // Перенаправление на главную страницу после успешного создания
+            },
+            error: (error) => {
+              console.error('Error creating short link:', error);
+            },
+          });
+      }
     }
   }
 }
