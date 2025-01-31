@@ -9,6 +9,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ShortLinkModule } from './short-link/short-link.module';
 import { LinkStatModule } from './link-stat/link-stat.module';
 import { AuthModule } from './auth/auth.module';
+import { EditPermissionModule } from './permission/edit-permission.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthModule } from './auth/auth.module';
     ShortLinkModule,
     LinkStatModule,
     AuthModule,
+    EditPermissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, ShortLink } from '@prisma/client';
 
@@ -16,36 +16,72 @@ export class ShortLinkService {
     return shortLink;
   }
 
+  async getShortLinkByKey({
+    shortKey,
+    userId,
+  }: {
+    shortKey: string;
+    userId: string;
+  }) {
+    const shortLink = await this.prismaService.shortLink.findUnique({
+      where: { shortKey },
+      include: { permissions: true, user: true },
+    });
+
+    if (!shortLink) {
+      throw new NotFoundException('Ссылка не найдена');
+    }
+
+    const isOwner = shortLink.createdByUserId === userId;
+    const canEdit =
+      isOwner || shortLink.permissions.some((p) => p.userId === userId);
+
+    return { ...shortLink, isOwner, canEdit };
+  }
+
   async getAllLinks(): Promise<ShortLink[]> {
     const links = await this.prismaService.shortLink.findMany();
 
     return links;
   }
 
-  async findAllSorted({sortBy, direction, search, page, limit}:
-    {
-        sortBy: 'updatedAt' | 'createdAt' | 'description' | undefined,
-        direction: 'asc' | 'desc' | undefined,
-        search: string,
-        page: number,
-        limit: number,
-    }
-  ) {
-    const orderBy = this.getOrderBy({sortBy, direction});
+  async findAllSorted({
+    sortBy,
+    direction,
+    search,
+    page,
+    limit,
+    userId,
+  }: {
+    sortBy: 'updatedAt' | 'createdAt' | 'description' | undefined;
+    direction: 'asc' | 'desc' | undefined;
+    search: string;
+    page: number;
+    limit: number;
+    userId: string;
+  }) {
+    const orderBy = this.getOrderBy({ sortBy, direction });
 
-    const where = search
-      ? {
-          OR: [
-            { description: { contains: search, mode: 'insensitive' as const } },
-            { shortKey: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
-      : {};
-
+    const where = {
+      OR: [
+        { createdByUserId: userId }, // Ссылки, созданные пользователем
+        { permissions: { some: { userId } } }, // Ссылки, на которые есть доступ
+      ],
+      AND: search
+        ? {
+            OR: [
+              {
+                description: { contains: search, mode: 'insensitive' as const },
+              },
+              { shortKey: { contains: search, mode: 'insensitive' as const } },
+            ],
+          }
+        : {},
+    };
     const totalCount = await this.prismaService.shortLink.count({ where });
 
-    const sortedLinks = await this.prismaService.shortLink.findMany({ 
-      orderBy, 
+    const sortedLinks = await this.prismaService.shortLink.findMany({
+      orderBy,
       where,
       skip: (page - 1) * limit,
       take: Number(limit), // to pass prisma validation
@@ -75,22 +111,25 @@ export class ShortLinkService {
     };
   }
 
-  private getOrderBy(
-    {sortBy, direction}:
-    {
-        sortBy: 'updatedAt' | 'createdAt' | 'description' | undefined,
-        direction: 'asc' | 'desc' | undefined,
-    }
-  ) {
+  private getOrderBy({
+    sortBy,
+    direction,
+  }: {
+    sortBy: 'updatedAt' | 'createdAt' | 'description' | undefined;
+    direction: 'asc' | 'desc' | undefined;
+  }) {
     switch (sortBy) {
       case 'createdAt':
-        return { createdAt: direction ?? 'desc' as const };
+        return { createdAt: direction ?? ('desc' as const) };
       case 'updatedAt':
-        return { updatedAt: direction ?? 'desc' as const };
+        return { updatedAt: direction ?? ('desc' as const) };
       case 'description':
-        return [{ description: direction ?? 'asc' as const }, {shortKey: direction ?? 'asc' as const}];
+        return [
+          { description: direction ?? ('asc' as const) },
+          { shortKey: direction ?? ('asc' as const) },
+        ];
       default:
-        return { updatedAt: direction ?? 'desc' as const };
+        return { updatedAt: direction ?? ('desc' as const) };
     }
   }
 

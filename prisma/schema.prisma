@@ -13,6 +13,7 @@ model User {
   password     String
   accessToken  String?
   createdLinks ShortLink[]
+  permissions EditPermission[]
 }
 
 model ShortLink {
@@ -25,6 +26,7 @@ model ShortLink {
   description     String
   linkStats       LinkStat[]
   user            User       @relation(fields: [createdByUserId], references: [id])
+  permissions     EditPermission[]
 }
 
 model LinkStat {
@@ -35,4 +37,12 @@ model LinkStat {
   referrer    String?
   deviceType  String
   shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
+}
+
+model EditPermission {
+  id          String    @id @default(uuid())
+  userId      String      
+  shortLinkId String   
+  user        User      @relation(fields: [userId], references: [id])
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id])
 }

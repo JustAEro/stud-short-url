@@ -1,15 +1,11 @@
-@if (isLoading) {
-    <div>Loading...</div>
-}
+<div *ngIf="isLoading" class="loading-container">
+  <div class="loading-message">Loading...</div>
+</div>
 
-@if (error) {
-    <div [ngStyle]="{color: 'red'}">
-        {{error.message}}
-    </div>
-}
+<div *ngIf="error" class="error-container">
+  <div class="error-message">Error: Link not found</div>
+</div>
 
-@if (!isLoading && !error) {
-    <div [ngStyle]="{color: 'green'}">
-        Link found. You will be redirected shortly.
-    </div>
-}
+<div *ngIf="!isLoading && !error" class="success-container">
+  <div class="success-message">Link found. You will be redirected shortly.</div>
+</div>

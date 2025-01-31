@@ -22,7 +22,7 @@ export class LoginComponent {
   constructor(private fb: FormBuilder, private authService: AuthService) {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      password: ['', [Validators.required, Validators.minLength(1)]],
     });
   }
 
@@ -33,6 +33,6 @@ export class LoginComponent {
     console.log('Logging in user:', { email, password });
     // Добавьте вызов сервиса для входа
 
-    this.authService.login({login: email, password});
+    this.authService.login({ login: email, password });
   }
 }

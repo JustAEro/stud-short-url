@@ -10,12 +10,17 @@ import {
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables, ChartType } from 'chart.js';
-import { ShortLinkDto, UpdateShortLinkDto } from '@stud-short-url/common';
+import {
+  ShortLinkDto,
+  ShortLinkWithPermissionsDto,
+  UpdateShortLinkDto,
+} from '@stud-short-url/common';
 import { HeaderComponent } from '../header/header.component';
 import { LucideAngularModule } from 'lucide-angular';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { DeleteConfirmationDialogComponent } from './delete-confirmation-dialog.component';
+import { PermissionsFormComponent } from './permissions-form.component';
 
 Chart.register(...registerables);
 
@@ -28,6 +33,7 @@ Chart.register(...registerables);
     FormsModule,
     HeaderComponent,
     LucideAngularModule,
+    PermissionsFormComponent,
   ],
   template: `
     <app-header></app-header>
@@ -37,6 +43,12 @@ Chart.register(...registerables);
       >
         <button class="back-btn" (click)="goBack()">← Назад</button>
         <div style="display: flex; flex-direction: column;">
+          <p style="margin-top: 10px;">
+            <strong
+              >Создатель:
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong
+            >{{ creatorLogin }}
+          </p>
           <p style="margin-top: 10px;">
             <strong>Дата создания: &nbsp;&nbsp;&nbsp;&nbsp;</strong
             >{{ link.createdAt | date : 'dd-MM-YYYY HH:mm:ss' }}
@@ -50,7 +62,9 @@ Chart.register(...registerables);
 
       <h1>
         Данные короткой ссылки
-        <div style="display: flex; align-items: baseline; justify-content: center; gap: 10px;">
+        <div
+          style="display: flex; align-items: baseline; justify-content: center; gap: 10px;"
+        >
           <a class="copy-link" href="{{ origin + '/' + link.shortKey }}">
             {{ origin + '/' + link.shortKey }}
           </a>
@@ -64,9 +78,11 @@ Chart.register(...registerables);
             ></lucide-icon>
           </button>
 
+          @if (isOwner) {
           <button class="delete-btn" (click)="confirmDelete()">
             <lucide-icon name="trash"></lucide-icon>
           </button>
+          }
         </div>
       </h1>
 
@@ -91,7 +107,7 @@ Chart.register(...registerables);
       </form>
 
       <div class="stats-section">
-        <h2>Статистика</h2>
+        <h2 style="text-align: center;">Статистика</h2>
 
         <div class="filters">
           <div style="display: flex; align-items: baseline; gap: 10px;">
@@ -124,6 +140,13 @@ Chart.register(...registerables);
 
         <canvas id="statsChart"></canvas>
       </div>
+
+      @if (isOwner) {
+      <h2 style="text-align: center;">Управление правами</h2>
+      <div style="display: flex; justify-content: center;">
+        <app-permissions-form [linkId]="link.id"></app-permissions-form>
+      </div>
+      }
     </div>
   `,
   styles: [
@@ -246,6 +269,9 @@ export class ShortLinkPageComponent implements OnInit {
   chart!: Chart;
   origin = window.location.origin;
   link!: ShortLinkDto;
+  isOwner = false;
+  canEdit = false;
+  creatorLogin = '';
 
   constructor(
     private fb: FormBuilder,
@@ -276,9 +302,14 @@ export class ShortLinkPageComponent implements OnInit {
 
     // Загрузка данных короткой ссылки
     this.http
-      .get<ShortLinkDto>(`/api/v1/short-links/no-stats/${shortLinkId}`)
+      .get<ShortLinkWithPermissionsDto>(
+        `/api/v1/short-links/no-stats/${shortLinkId}`
+      )
       .subscribe((link) => {
         this.link = link;
+        this.canEdit = link.canEdit;
+        this.isOwner = link.isOwner;
+        this.creatorLogin = link.user.login;
 
         this.shortLinkForm.patchValue({
           longUrl: link.longLink,

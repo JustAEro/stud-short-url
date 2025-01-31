@@ -1,0 +1,53 @@
+.loading-container,
+.error-container,
+.success-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  margin: 10px 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.loading-message {
+  font-size: 1.2rem;
+  color: #ff9800;
+  font-weight: bold;
+  animation: loading-blink 1.5s infinite;
+}
+
+.error-container {
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+}
+
+.error-message {
+  color: #721c24;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.success-container {
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+}
+
+.success-message {
+  color: #155724;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* Анимация для загрузки */
+@keyframes loading-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}

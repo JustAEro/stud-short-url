@@ -10,16 +10,21 @@ import {
   Query,
   Req,
   UseGuards,
+  Request,
 } from '@nestjs/common';
 import { ShortLinkService } from './short-link.service';
 import { LinkStatService } from '../link-stat/link-stat.service';
 import { UAParser } from 'ua-parser-js';
 import {
   CreateShortLinkDto,
+  RequestUserPayloadDto,
   ShortLinkDto,
+  ShortLinkWithPermissionsDto,
   UpdateShortLinkDto,
 } from '@stud-short-url/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { EditPermissionGuard } from '../permission/edit-permission.guard';
+import { IsOwnerGuard } from '../permission/is-owner.guard';
 
 @Controller('short-links')
 export class ShortLinkController {
@@ -40,13 +45,24 @@ export class ShortLinkController {
     @Query('search')
     search = '',
 
-    @Query('page') 
+    @Query('page')
     page = 1,
 
-    @Query('limit') 
+    @Query('limit')
     limit = 5,
+
+    @Request() req: any
   ) {
-    return await this.shortLinkService.findAllSorted({sortBy, direction, search, page, limit});
+    const user: RequestUserPayloadDto = req.user;
+
+    return await this.shortLinkService.findAllSorted({
+      sortBy,
+      direction,
+      search,
+      page,
+      limit,
+      userId: user.sub,
+    });
   }
 
   @Get(':shortKey')
@@ -75,12 +91,18 @@ export class ShortLinkController {
     return link;
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EditPermissionGuard)
   @Get('no-stats/:shortKey')
   async getLinkByShortKeyWithoutStatsUpdate(
-    @Param('shortKey') shortKey: string
-  ): Promise<ShortLinkDto> {
-    const link = await this.shortLinkService.getLink({ shortKey });
+    @Param('shortKey') shortKey: string,
+    @Request() req: any
+  ): Promise<ShortLinkWithPermissionsDto> {
+    const user: RequestUserPayloadDto = req.user;
+
+    const link = await this.shortLinkService.getShortLinkByKey({
+      shortKey,
+      userId: user.sub,
+    });
 
     if (!link) {
       throw new NotFoundException('link not found');
@@ -104,7 +126,7 @@ export class ShortLinkController {
     });
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EditPermissionGuard)
   @Put(':shortKey')
   async updateLinkByShortKey(
     @Param('shortKey') shortKey: string,
@@ -116,7 +138,7 @@ export class ShortLinkController {
     });
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, IsOwnerGuard)
   @Delete(':shortKey')
   async deleteLinkByShortKey(@Param('shortKey') shortKey: string) {
     return await this.shortLinkService.deleteLink({ shortKey });
