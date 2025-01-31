@@ -94,26 +94,32 @@ Chart.register(...registerables);
         <h2>Статистика</h2>
 
         <div class="filters">
-          <label for="timeScale">Гранулярность:</label>
-          <select
-            id="timeScale"
-            [(ngModel)]="timeScale"
-            (change)="fetchStatistics()"
-          >
-            <option value="hour">Час</option>
-            <option value="day">День</option>
-            <option value="month">Месяц</option>
-          </select>
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <label for="timeScale">Гранулярность:</label>
+            <select
+              id="timeScale"
+              class="sort-select"
+              [(ngModel)]="timeScale"
+              (change)="fetchStatistics()"
+            >
+              <option value="hour">Час</option>
+              <option value="day">День</option>
+              <option value="month">Месяц</option>
+            </select>
+          </div>
 
-          <label for="chartType">Тип графика:</label>
-          <select
-            id="chartType"
-            [(ngModel)]="chartType"
-            (change)="updateChartType()"
-          >
-            <option value="bar">Столбчатый</option>
-            <option value="line">Линейный</option>
-          </select>
+          <div style="display: flex; align-items: baseline; gap: 10px;">
+            <label for="chartType">Тип графика:</label>
+            <select
+              id="chartType"
+              class="sort-select"
+              [(ngModel)]="chartType"
+              (change)="updateChartType()"
+            >
+              <option value="bar">Столбчатый</option>
+              <option value="line">Линейный</option>
+            </select>
+          </div>
         </div>
 
         <canvas id="statsChart"></canvas>
@@ -221,6 +227,14 @@ Chart.register(...registerables);
         background-color: transparent;
         cursor: pointer;
         color: red;
+      }
+
+      .sort-select {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
       }
     `,
   ],

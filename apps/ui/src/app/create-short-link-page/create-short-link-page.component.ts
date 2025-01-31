@@ -88,7 +88,7 @@ import { AuthService } from '../auth/auth.service';
       }
 
       input {
-        width: 100%;
+        width: 97%;
         padding: 0.5rem;
         border: 1px solid #ddd;
         border-radius: 8px;

@@ -29,38 +29,53 @@ import { debounceTime, Subject } from 'rxjs';
           <p>No short links found.</p>
         </div>
 
-        <div *ngIf="shortLinks.length > 0">
-          <label for="sort">Сортировка:</label>
-          <select id="sort" [(ngModel)]="sortBy" (change)="loadShortLinks()">
-            <option value="updatedAt">По дате обновления</option>
-            <option value="createdAt">По дате создания</option>
-            <option value="description">По описанию</option>
-          </select>
+        <div style="display: flex; justify-content: space-between;">
+          <div *ngIf="shortLinks.length > 0">
+            <label for="sort" style="margin-left: 10px;">Сортировка:</label>
+            <div class="sort-container">
+              <select class="sort-select" id="sort" [(ngModel)]="sortBy" (change)="loadShortLinks()">
+                <option value="updatedAt">По дате обновления</option>
+                <option value="createdAt">По дате создания</option>
+                <option value="description">По описанию</option>
+              </select>
+            </div>
+          </div>
+
+          <div *ngIf="shortLinks.length > 0">
+            <label for="order" style="margin-left: 10px;">Порядок сортировки:</label>
+            <div class="sort-container">
+              <select class="sort-select" id="order" [(ngModel)]="sortDirection" (change)="loadShortLinks()">
+                <option value="asc">
+                  @if (sortBy === "updatedAt" || sortBy === "createdAt") {
+                    От более давних к менее давним
+                  }
+                  @else {
+                    A-Z
+                  }
+                </option>
+                <option value="desc">
+                  @if (sortBy === "updatedAt" || sortBy === "createdAt") {
+                    От менее давних к более давним
+                  }
+                  @else {
+                    Z-A
+                  }
+                </option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        <div *ngIf="shortLinks.length > 0">
-          <label for="order">Порядок сортировки:</label>
-          <select id="order" [(ngModel)]="sortDirection" (change)="loadShortLinks()">
-            <option value="asc">
-              @if (sortBy === "updatedAt" || sortBy === "createdAt") {
-                От более давних к менее давним
-              }
-              @else {
-                A-Z
-              }
-            </option>
-            <option value="desc">
-              @if (sortBy === "updatedAt" || sortBy === "createdAt") {
-                От менее давних к более давним
-              }
-              @else {
-                Z-A
-              }
-            </option>
-          </select>
+        <div class="search-container">
+          <input 
+            class="search-input"
+            style="width: 100%;" 
+            #searchInput 
+            [(ngModel)]="searchQuery" 
+            (input)="onSearchChange()" 
+            placeholder="Поиск (введите часть описания или ключа короткой ссылки) ..." />
         </div>
-
-        <input style="width: 100%;" #searchInput [(ngModel)]="searchQuery" (input)="onSearchChange()" placeholder="Поиск (введите часть описания или ключа короткой ссылки) ..." />
+        
         
         <ul *ngIf="shortLinks.length > 0" class="short-links-list">
           <li *ngFor="let link of shortLinks" class="short-link-item">
@@ -99,12 +114,12 @@ import { debounceTime, Subject } from 'rxjs';
         
         @if (shortLinks.length > 0 && totalPages > 1) {
           <div class="pagination">
-            <button (click)="prevPage()" [disabled]="page === 1">Назад</button>
+            <button class="pagination-btn" (click)="prevPage()" [disabled]="page === 1">Назад</button>
             <span>Страница</span>
-            <select [(ngModel)]="page" (change)="loadShortLinks()" [disabled]="totalPages === 1">
+            <select class="sort-select" [(ngModel)]="page" (change)="loadShortLinks()" [disabled]="totalPages === 1">
               <option *ngFor="let p of totalPagesArray" [value]="p">{{ p }}</option>
             </select>
-            <button (click)="nextPage()" [disabled]="page === totalPages">Вперед</button>
+            <button class="pagination-btn" (click)="nextPage()" [disabled]="page === totalPages">Вперед</button>
           </div>
         }
       </ng-template>
@@ -162,8 +177,69 @@ import { debounceTime, Subject } from 'rxjs';
         margin-top: 1rem; 
         gap: 10px; 
       }
+
       .pagination button, .pagination select { 
         padding: 5px 10px; 
+      }
+
+      .pagination-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .pagination-btn:hover {
+        background-color: #007bff;
+        color: #fff;
+      }
+
+      .pagination-btn:disabled {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+      }
+
+      .search-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem;
+      }
+
+      .search-input {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        width: 200px;
+        transition: border-color 0.2s ease;
+      }
+
+      .search-input:focus {
+        border-color: #007bff;
+        outline: none;
+      }
+
+      .sort-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem;
+      }
+
+      .sort-select {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+      }
+
+      .sort-select:focus {
+        border-color: #007bff;
+        outline: none;
       }
     `,
   ],
