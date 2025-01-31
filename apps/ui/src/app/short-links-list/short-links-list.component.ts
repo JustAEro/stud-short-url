@@ -227,6 +227,8 @@ export class ShortLinksListComponent implements OnInit {
   }
 
   onSearchChange(): void {
+    this.page = 1;
+
     this.searchSubject.next(this.searchQuery);
   }
 

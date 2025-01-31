@@ -3,7 +3,7 @@
 
   <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
     <div class="form-group">
-      <label for="email">Email</label>
+      <label for="email">Логин</label>
       <input
         id="email"
         type="email"
@@ -20,7 +20,7 @@
         "
       >
         <small *ngIf="registerForm.get('email')?.errors?.['required']"
-          >Email is required.</small
+          >Логин обязателен.</small
         >
         <small *ngIf="registerForm.get('email')?.errors?.['email']"
           >Invalid email format.</small

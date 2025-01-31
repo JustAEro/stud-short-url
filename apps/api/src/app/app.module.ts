@@ -8,6 +8,7 @@ import { UserModule } from './user/user.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ShortLinkModule } from './short-link/short-link.module';
 import { LinkStatModule } from './link-stat/link-stat.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { LinkStatModule } from './link-stat/link-stat.module';
     PrismaModule,
     ShortLinkModule,
     LinkStatModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

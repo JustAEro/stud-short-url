@@ -10,6 +10,11 @@ import {common} from '@stud-short-url/common';
 
 import { AppModule } from './app/app.module';
 
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+console.log('Loaded JWT_SECRET:', process.env.JWT_SECRET);
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
