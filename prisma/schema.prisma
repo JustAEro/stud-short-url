@@ -44,5 +44,5 @@ model EditPermission {
   userId      String      
   shortLinkId String   
   user        User      @relation(fields: [userId], references: [id])
-  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id])
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
 }
