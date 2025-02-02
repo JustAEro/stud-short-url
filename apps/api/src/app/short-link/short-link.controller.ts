@@ -113,7 +113,7 @@ export class ShortLinkController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async createLink(@Body() linkData: CreateShortLinkDto) {
+  async createLink(@Body() linkData: CreateShortLinkDto): Promise<ShortLinkDto> {
     const shortKey = this.shortLinkService.generateUrlSafeString();
 
     return await this.shortLinkService.createLink({

@@ -4,7 +4,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { HeaderComponent } from '../header/header.component';
-import { CreateShortLinkDto } from '@stud-short-url/common';
+import { CreateShortLinkDto, ShortLinkDto } from '@stud-short-url/common';
 import { AuthService } from '../auth/auth.service';
 
 @Component({
@@ -152,11 +152,11 @@ export class CreateShortLinkPageComponent {
         }
   
         this.http
-          .post('/api/v1/short-links', requestBody)
+          .post<ShortLinkDto>('/api/v1/short-links', requestBody)
           .subscribe({
             next: (response) => {
               console.log('Short link created:', response);
-              this.router.navigate(['/']); // Перенаправление на главную страницу после успешного создания
+              this.router.navigate(['/short-links', response.shortKey]);
             },
             error: (error) => {
               console.error('Error creating short link:', error);
