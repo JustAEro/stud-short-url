@@ -21,12 +21,12 @@ export class AuthService {
   async login(user: { id: string; login: string }) {
     const payload = { login: user.login, sub: user.id };
 
-    console.log('Payload before signing:', payload);
-    console.log('JWT_SECRET used for signing:', process.env.JWT_SECRET);
+    // console.log('Payload before signing:', payload);
+    // console.log('JWT_SECRET used for signing:', process.env.JWT_SECRET);
 
     const token = this.jwtService.sign(payload, { secret: process.env.JWT_SECRET });
 
-    console.log('Generated Token:', token);
+    // console.log('Generated Token:', token);
 
     return {
       accessToken: token,

@@ -21,6 +21,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatDialog } from '@angular/material/dialog';
 import { DeleteConfirmationDialogComponent } from './delete-confirmation-dialog.component';
 import { PermissionsFormComponent } from './permissions-form.component';
+import { QrDialogComponent } from '../qr-dialog/qr-dialog.component';
 
 Chart.register(...registerables);
 
@@ -48,6 +49,10 @@ Chart.register(...registerables);
               >Создатель:
               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong
             >{{ creatorLogin }}
+          </p>
+          <p style="margin-top: 10px;">
+            <strong>Режим доступа: &nbsp;&nbsp;&nbsp;</strong
+            >{{ getRoleAlias(role) }}
           </p>
           <p style="margin-top: 10px;">
             <strong>Дата создания: &nbsp;&nbsp;&nbsp;&nbsp;</strong
@@ -78,7 +83,14 @@ Chart.register(...registerables);
             ></lucide-icon>
           </button>
 
-          @if (isOwner) {
+          <lucide-icon
+            name="qr-code"
+            class="qr-code-btn"
+            (click)="openQrDialog()"
+          >
+          </lucide-icon>
+
+          @if (role === 'admin') {
           <button class="delete-btn" (click)="confirmDelete()">
             <lucide-icon name="trash"></lucide-icon>
           </button>
@@ -89,14 +101,26 @@ Chart.register(...registerables);
       <form [formGroup]="shortLinkForm" (ngSubmit)="onUpdate()">
         <div class="form-group">
           <label for="longUrl">Целевая ссылка</label>
-          <input id="longUrl" type="url" formControlName="longUrl" required />
+          <input
+            id="longUrl"
+            type="url"
+            formControlName="longUrl"
+            [readonly]="role === 'viewer'"
+            required
+          />
         </div>
 
         <div class="form-group">
           <label for="description">Описание (Опционально)</label>
-          <input id="description" type="text" formControlName="description" />
+          <input
+            id="description"
+            type="text"
+            formControlName="description"
+            [readonly]="role === 'viewer'"
+          />
         </div>
 
+        @if (role === 'admin' || role === 'editor') {
         <button
           type="submit"
           class="update-btn"
@@ -104,6 +128,7 @@ Chart.register(...registerables);
         >
           Изменить
         </button>
+        }
       </form>
 
       <div class="stats-section">
@@ -141,12 +166,15 @@ Chart.register(...registerables);
         <canvas id="statsChart"></canvas>
       </div>
 
-      @if (isOwner) {
-      <h2 style="text-align: center;">Управление правами</h2>
-      <div style="display: flex; justify-content: center;">
-        <app-permissions-form [linkId]="link.id"></app-permissions-form>
+      <div *ngIf="role === 'admin'">
+        <h2 style="text-align: center;">Управление правами</h2>
+        <div style="display: flex; justify-content: center;">
+          <app-permissions-form
+            [linkId]="link.id"
+            (accessDenied)="onAccessDenied()"
+          ></app-permissions-form>
+        </div>
       </div>
-      }
     </div>
   `,
   styles: [
@@ -259,6 +287,10 @@ Chart.register(...registerables);
         font-size: 1rem;
         transition: border-color 0.2s ease;
       }
+
+      .qr-code-btn {
+        cursor: pointer;
+      }
     `,
   ],
 })
@@ -269,8 +301,7 @@ export class ShortLinkPageComponent implements OnInit {
   chart!: Chart;
   origin = window.location.origin;
   link!: ShortLinkDto;
-  isOwner = false;
-  canEdit = false;
+  role: 'viewer' | 'editor' | 'admin' = 'viewer';
   creatorLogin = '';
 
   constructor(
@@ -307,8 +338,7 @@ export class ShortLinkPageComponent implements OnInit {
       )
       .subscribe((link) => {
         this.link = link;
-        this.canEdit = link.canEdit;
-        this.isOwner = link.isOwner;
+        this.role = link.role;
         this.creatorLogin = link.user.login;
 
         this.shortLinkForm.patchValue({
@@ -432,5 +462,28 @@ export class ShortLinkPageComponent implements OnInit {
       },
       (err) => console.error('Ошибка при копировании в буфер обмена', err)
     );
+  }
+
+  permissionAccessDenied = false;
+
+  onAccessDenied(): void {
+    this.permissionAccessDenied = true;
+  }
+
+  getRoleAlias(role: 'viewer' | 'editor' | 'admin'): string {
+    switch (role) {
+      case 'viewer':
+        return 'Просмотр';
+      case 'editor':
+        return 'Редактирование';
+      case 'admin':
+        return 'Администрирование';
+    }
+  }
+
+  openQrDialog() {
+    this.dialog.open(QrDialogComponent, {
+      data: { shortLink: this.origin + '/' + this.link.shortKey },
+    });
   }
 }

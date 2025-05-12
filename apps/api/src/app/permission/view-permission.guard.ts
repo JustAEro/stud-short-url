@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class EditPermissionGuard implements CanActivate {
+export class ViewPermissionGuard implements CanActivate {
   constructor(private prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -21,7 +21,7 @@ export class EditPermissionGuard implements CanActivate {
         permissions: {
           where: {
             user: { id: userId },
-            role: { in: ['editor', 'admin'] },
+            role: { in: ['viewer', 'editor', 'admin'] },
           },
           select: { id: true },
         },
