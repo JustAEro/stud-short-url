@@ -54,7 +54,7 @@ import { catchError, of, throwError } from 'rxjs';
           type="submit"
           [disabled]="permissionForm.invalid"
         >
-          Добавить
+          Добавить пользователя
         </button>
       </form>
     </div>
@@ -203,7 +203,7 @@ export class PermissionsFormComponent implements OnInit {
         catchError((error: HttpErrorResponse) => {
           if (error.status === 403) {
             this.accessDenied.emit();
-            
+
             return of([]); // возвращаем пустой список, чтобы не прервать поток
           }
 
