@@ -82,7 +82,7 @@ export class ShortLinkController {
     const parser = new UAParser((req.headers as any)['user-agent']);
     const browser = parser.getBrowser().name || 'Unknown';
     const deviceType = parser.getDevice().type?.toUpperCase() || 'DESKTOP';
-    const referrer = (req.headers as any).referrer;
+    const referrer = (req.headers as any)['referer'] || (req.headers as any)['referrer'] || null;
 
     this.linkStatService.registerClick({
       shortKey,
