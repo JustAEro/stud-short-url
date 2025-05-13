@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma, ShortLink } from '@prisma/client';
+import { ShortLinkWithPermissionsDto } from '@stud-short-url/common';
 
 @Injectable()
 export class ShortLinkService {
@@ -22,7 +23,7 @@ export class ShortLinkService {
   }: {
     shortKey: string;
     userId: string;
-  }) {
+  }): Promise<ShortLinkWithPermissionsDto> {
     const shortLink = await this.prismaService.shortLink.findUnique({
       where: { shortKey },
       include: { permissions: true, user: true },
@@ -32,11 +33,15 @@ export class ShortLinkService {
       throw new NotFoundException('Ссылка не найдена');
     }
 
-    const isOwner = shortLink.createdByUserId === userId;
-    const canEdit =
-      isOwner || shortLink.permissions.some((p) => p.userId === userId);
+    const permission = shortLink.permissions.find(
+      (p) => p.userId === userId
+    );
 
-    return { ...shortLink, isOwner, canEdit };
+    if (!permission) {
+      throw new ForbiddenException('У вас нет доступа к этой ссылке');
+    }
+
+    return { ...shortLink, role: permission.role };
   }
 
   async getAllLinks(): Promise<ShortLink[]> {
@@ -64,7 +69,6 @@ export class ShortLinkService {
 
     const where = {
       OR: [
-        { createdByUserId: userId }, // Ссылки, созданные пользователем
         { permissions: { some: { userId } } }, // Ссылки, на которые есть доступ
       ],
       AND: search

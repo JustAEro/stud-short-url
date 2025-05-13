@@ -39,10 +39,19 @@ model LinkStat {
   shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
 }
 
+enum PermissionRole {
+  viewer
+  editor
+  admin
+}
+
 model EditPermission {
   id          String    @id @default(uuid())
   userId      String      
   shortLinkId String   
+  role        PermissionRole
   user        User      @relation(fields: [userId], references: [id])
   shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, shortLinkId])
 }

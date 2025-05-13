@@ -7,21 +7,22 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class EditPermissionGuard implements CanActivate {
-  constructor(private prisma: PrismaService) {}
+export class IsShortLinkAdminGuard implements CanActivate {
+  constructor(private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest();
-    const userId = req.user.sub;
-    const shortKey = req.params.shortKey;
+    const request = context.switchToHttp().getRequest();
+    const userId = request.user.sub;
+    const shortKey = request.params.shortKey;
 
     const shortLink = await this.prisma.shortLink.findUnique({
       where: { shortKey },
       select: {
+        id: true,
         permissions: {
           where: {
-            user: { id: userId },
-            role: { in: ['editor', 'admin'] },
+            user: {id: userId},
+            role: 'admin',
           },
           select: { id: true },
         },
@@ -32,10 +33,10 @@ export class EditPermissionGuard implements CanActivate {
       throw new ForbiddenException('Ссылка не найдена');
     }
 
-    const hasEditPermission = shortLink.permissions.length > 0;
+    const isAdmin = shortLink.permissions.length > 0;
 
-    if (!hasEditPermission) {
-      throw new ForbiddenException('Нет прав на редактирование');
+    if (!isAdmin) {
+      throw new ForbiddenException('Вы не являетесь админом этой ссылки');
     }
 
     return true;

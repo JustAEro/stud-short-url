@@ -24,12 +24,12 @@ export class JwtAuthGuard extends AuthGuard('jwt') implements CanActivate {
         }
     
         try {
-          console.log('Received token:', token);
-          console.log('JWT_SECRET used for verifying:', process.env.JWT_SECRET);
+          // console.log('Received token:', token);
+          // console.log('JWT_SECRET used for verifying:', process.env.JWT_SECRET);
 
           const payload = this.jwtService.verify(token, { secret: process.env.JWT_SECRET });
 
-          console.log('Decoded payload:', payload);
+          // console.log('Decoded payload:', payload);
 
           request.user = payload; // Добавляем пользователя в request
 

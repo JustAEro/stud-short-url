@@ -6,11 +6,18 @@ import {
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { appRoutes } from './app.routes';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
-import { HTTP_INTERCEPTORS, provideHttpClient, withFetch, withInterceptors, withInterceptorsFromDi } from '@angular/common/http';
+import {
+  HTTP_INTERCEPTORS,
+  provideHttpClient,
+  withFetch,
+  withInterceptors,
+  withInterceptorsFromDi,
+} from '@angular/common/http';
 import {
   ClipboardCopy,
   LucideAngularModule,
   Plus,
+  QrCode,
   Trash,
   User,
 } from 'lucide-angular';
@@ -23,22 +30,19 @@ export const appConfig: ApplicationConfig = {
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(appRoutes, withComponentInputBinding()),
     provideAnimationsAsync(),
-    provideHttpClient(
-      withFetch(),
-      withInterceptorsFromDi(),
-    ),
+    provideHttpClient(withFetch(), withInterceptorsFromDi()),
     {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true,
     },
-    { 
-      provide: HTTP_INTERCEPTORS, 
-      useClass: ErrorInterceptor, 
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: ErrorInterceptor,
       multi: true,
     },
     importProvidersFrom(
-      LucideAngularModule.pick({ User, Plus, ClipboardCopy, Trash })
+      LucideAngularModule.pick({ User, Plus, ClipboardCopy, Trash, QrCode })
     ),
     importProvidersFrom(MatSnackBarModule),
   ],

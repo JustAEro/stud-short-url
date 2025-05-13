@@ -30,7 +30,7 @@ export class ErrorInterceptor implements HttpInterceptor {
           { duration: 5000, panelClass: ['snackbar-error'] }
         );
 
-        if (error.status === 403) {
+        if (error.status === 403 && !req.url.includes('/api/v1/edit-permission/')) {
           // Перенаправляем на главную страницу при 403 ошибке
           this.router.navigate(['/']);
         }

@@ -7,5 +7,6 @@ import { EditPermissionService } from './edit-permission.service';
   imports: [PrismaModule],
   controllers: [EditPermissionController],
   providers: [EditPermissionService],
+  exports: [EditPermissionService],
 })
 export class EditPermissionModule {}

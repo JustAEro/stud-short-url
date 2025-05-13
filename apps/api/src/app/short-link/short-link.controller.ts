@@ -24,13 +24,16 @@ import {
 } from '@stud-short-url/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EditPermissionGuard } from '../permission/edit-permission.guard';
-import { IsOwnerGuard } from '../permission/is-owner.guard';
+import { EditPermissionService } from '../permission/edit-permission.service';
+import { IsShortLinkAdminGuard } from '../permission/is-short-link-admin.guard';
+import { ViewPermissionGuard } from '../permission/view-permission.guard';
 
 @Controller('short-links')
 export class ShortLinkController {
   constructor(
     private readonly shortLinkService: ShortLinkService,
-    private readonly linkStatService: LinkStatService
+    private readonly linkStatService: LinkStatService,
+    private readonly editPermissionService: EditPermissionService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -91,7 +94,7 @@ export class ShortLinkController {
     return link;
   }
 
-  @UseGuards(JwtAuthGuard, EditPermissionGuard)
+  @UseGuards(JwtAuthGuard, ViewPermissionGuard)
   @Get('no-stats/:shortKey')
   async getLinkByShortKeyWithoutStatsUpdate(
     @Param('shortKey') shortKey: string,
@@ -113,10 +116,12 @@ export class ShortLinkController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async createLink(@Body() linkData: CreateShortLinkDto): Promise<ShortLinkDto> {
+  async createLink(@Body() linkData: CreateShortLinkDto, @Req() req: any): Promise<ShortLinkDto> {
     const shortKey = this.shortLinkService.generateUrlSafeString();
 
-    return await this.shortLinkService.createLink({
+    const user: RequestUserPayloadDto = req.user;
+
+    const link = await this.shortLinkService.createLink({
       longLink: linkData.longLink,
       shortKey,
       description: linkData.description,
@@ -124,6 +129,10 @@ export class ShortLinkController {
         connect: { login: linkData.login },
       },
     });
+
+    await this.editPermissionService.grantAdminToCreator(link.id, user.sub);
+
+    return link;
   }
 
   @UseGuards(JwtAuthGuard, EditPermissionGuard)
@@ -138,7 +147,7 @@ export class ShortLinkController {
     });
   }
 
-  @UseGuards(JwtAuthGuard, IsOwnerGuard)
+  @UseGuards(JwtAuthGuard, IsShortLinkAdminGuard)
   @Delete(':shortKey')
   async deleteLinkByShortKey(@Param('shortKey') shortKey: string) {
     return await this.shortLinkService.deleteLink({ shortKey });

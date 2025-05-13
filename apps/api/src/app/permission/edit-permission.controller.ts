@@ -7,10 +7,14 @@ import {
   UseGuards,
   Get,
   Req,
+  Patch,
 } from '@nestjs/common';
 import { EditPermissionService } from './edit-permission.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RequestUserPayloadDto } from '@stud-short-url/common';
+import {
+  RequestUserPayloadDto,
+  UpdatePermissionRoleDto,
+} from '@stud-short-url/common';
 
 @UseGuards(JwtAuthGuard)
 @Controller('edit-permission')
@@ -26,7 +30,8 @@ export class EditPermissionController {
   @Post('add/:shortLinkId')
   addPermission(
     @Param('shortLinkId') shortLinkId: string,
-    @Body() { login }: { login: string },
+    @Body()
+    { login, role }: { login: string; role: 'viewer' | 'editor' | 'admin' },
     @Req() req: any
   ) {
     const user: RequestUserPayloadDto = req.user;
@@ -34,7 +39,26 @@ export class EditPermissionController {
     return this.editPermissionService.addPermission({
       shortLinkId,
       login,
+      role,
       currentUserLogin: user.login,
+    });
+  }
+
+  @Patch('update/:shortLinkId')
+  async updatePermissionRole(
+    @Param('shortLinkId') shortLinkId: string,
+    @Body() dto: UpdatePermissionRoleDto,
+    @Req() req: any
+  ) {
+    const user: RequestUserPayloadDto = req.user;
+
+    const currentUserLogin = user.login;
+
+    return this.editPermissionService.updatePermissionRole({
+      shortLinkId,
+      targetLogin: dto.login,
+      newRole: dto.role,
+      currentUserLogin,
     });
   }
 
@@ -42,8 +66,17 @@ export class EditPermissionController {
   @Delete('remove/:shortLinkId/login/:login')
   removePermission(
     @Param('shortLinkId') shortLinkId: string,
-    @Param('login') login: string
+    @Param('login') login: string,
+    @Req() req: any
   ) {
-    return this.editPermissionService.removePermission({ shortLinkId, login });
+    const user: RequestUserPayloadDto = req.user;
+
+    const currentUserLogin = user.login;
+
+    return this.editPermissionService.removePermission({
+      shortLinkId,
+      targetLogin: login,
+      currentUserLogin,
+    });
   }
 }

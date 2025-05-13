@@ -9,8 +9,7 @@ export type ShortLinkDto = {
 };
 
 export type ShortLinkWithPermissionsDto = ShortLinkDto & {
-  isOwner: boolean;
-  canEdit: boolean;
+  role: 'viewer' | 'editor' | 'admin';
   user: {
     login: string;
     id: string;
