@@ -9,10 +9,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { LinkStatService } from './link-stat.service';
 
 @Controller('link-stat')
 export class LinkStatController {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly linkStatService: LinkStatService
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get(':shortKey/stats')
@@ -73,6 +77,17 @@ export class LinkStatController {
     return {
       labels: stats.map((stat) => stat.period),
       values: stats.map((stat) => stat.clicks),
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':shortKey/details')
+  async getDetailedStats(@Param('shortKey') shortKey: string) {
+    return {
+      total: await this.linkStatService.getTotalClicks(shortKey),
+      byDevice: await this.linkStatService.getClicksByDeviceType(shortKey),
+      byBrowser: await this.linkStatService.getClicksByBrowser(shortKey),
+      byReferrer: await this.linkStatService.getClicksByReferrer(shortKey),
     };
   }
 }
