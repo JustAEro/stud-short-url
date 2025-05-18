@@ -45,3 +45,6 @@ Thumbs.db
 
 #environment variables
 .env
+
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md
