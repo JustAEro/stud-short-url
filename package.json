@@ -72,6 +72,7 @@
     "angularx-qrcode": "^18.0.2",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.7",
+    "date-fns": "^4.1.0",
     "eslint": "~8.57.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-playwright": "^0.15.3",

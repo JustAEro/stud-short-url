@@ -74,7 +74,7 @@ model ReportShortLink {
   reportId    String
   shortLinkId String
 
-  report      Report    @relation(fields: [reportId], references: [id])
+  report      Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
   shortLink   ShortLink @relation(fields: [shortLinkId], references: [id])
 
   @@unique([reportId, shortLinkId])

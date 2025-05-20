@@ -1,5 +1,12 @@
 import { ShortLinkDto } from './link.dto';
 
+export type CreateReportBodyDto = {
+  name: string;
+  shortLinkIds: string[];
+};
+
+export type UpdateReportBodyDto = CreateReportBodyDto;
+
 export type ReportDto = {
   id: string;
   name: string;
@@ -9,3 +16,18 @@ export type ReportDto = {
     shortLink: ShortLinkDto;
   }>;
 };
+
+export type ReportModelDto = {
+  id: string;
+  name: string;
+  createdAt: string;
+  createdByUserId: string;
+}
+
+export type ReportWithPermissionsDto = ReportModelDto & {
+  role: 'viewer' | 'editor' | 'admin';
+  creatorUser: {
+    login: string;
+    id: string;
+  };
+}

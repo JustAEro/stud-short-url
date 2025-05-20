@@ -11,6 +11,7 @@ import { LinkStatModule } from './link-stat/link-stat.module';
 import { AuthModule } from './auth/auth.module';
 import { EditPermissionModule } from './permission/edit-permission.module';
 import { ReportModule } from './report/report.module';
+import { ReportPermissionModule } from './report-permission/report-permission.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ReportModule } from './report/report.module';
     AuthModule,
     EditPermissionModule,
     ReportModule,
+    ReportPermissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

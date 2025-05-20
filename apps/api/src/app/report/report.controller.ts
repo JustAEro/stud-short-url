@@ -8,33 +8,83 @@ import {
   UseGuards,
   Query,
   NotFoundException,
+  Request,
+  Put,
+  Delete,
 } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { LinkStatService } from '../link-stat/link-stat.service';
 import { Prisma } from '@prisma/client';
-import { FullReportDto, ReportDto, RequestUserPayloadDto } from '@stud-short-url/common';
+import {
+  CreateReportBodyDto,
+  FullReportDto,
+  ReportDto,
+  ReportModelDto,
+  ReportWithPermissionsDto,
+  RequestUserPayloadDto,
+  UpdateReportBodyDto,
+} from '@stud-short-url/common';
+import { parse, isValid } from 'date-fns';
+import { HasReportViewPermissionGuard } from '../report-permission/has-report-view-permission.guard';
+import { HasReportEditPermissionGuard } from '../report-permission/has-report-edit-permission.guard';
+import { IsReportAdminGuard } from '../report-permission/is-report-admin.guard';
 
 @UseGuards(JwtAuthGuard)
 @Controller('reports')
 export class ReportController {
   constructor(
-    private readonly reportsService: ReportService,
+    private readonly reportService: ReportService,
     private readonly prisma: PrismaService,
     private readonly linkStatService: LinkStatService
   ) {}
 
+  @Get()
+  async findAll(@Req() req: any): Promise<ReportDto[]> {
+    const user: RequestUserPayloadDto = req.user;
+
+    const userId = user.sub;
+
+    const reports = await this.reportService.findAll(userId);
+
+    const dtos = reports.map((report) =>
+      this.reportService.reportApiToDto(report)
+    );
+
+    return dtos;
+  }
+
+  @Get(':reportId')
+  @UseGuards(HasReportViewPermissionGuard)
+  async getReportByShortKey(
+    @Param('reportId') reportId: string,
+    @Request() req: any
+  ): Promise<ReportWithPermissionsDto> {
+    const user: RequestUserPayloadDto = req.user;
+
+    const report = await this.reportService.getReportById({
+      reportId,
+      userId: user.sub,
+    });
+
+    if (!report) {
+      throw new NotFoundException('report not found');
+    }
+
+    return report;
+  }
+
   @Post()
   async create(
     @Req() req: any,
-    @Body() body: { name: string; shortLinkIds: string[] }
+    @Body() body: CreateReportBodyDto
   ): Promise<ReportDto> {
     const user: RequestUserPayloadDto = req.user;
 
     const userId = user.sub;
 
-    const report = await this.reportsService.createReport(
+    const report = await this.reportService.createReport(
       userId,
       body.name,
       body.shortLinkIds
@@ -44,27 +94,50 @@ export class ReportController {
       throw new NotFoundException('Report not found');
     }
 
-    const dto: ReportDto = {
-      ...report,
-      createdAt: report.createdAt.toISOString(),
-    }
+    const dto = this.reportService.reportApiToDto(report);
 
     return dto;
   }
 
-  @Get()
-  async findAll(@Req() req: any) {
-    const user: RequestUserPayloadDto = req.user;
+  @UseGuards(HasReportEditPermissionGuard)
+  @Put(':reportId')
+  async updateLinkByShortKey(
+    @Param('reportId') reportId: string,
+    @Body() reportData: UpdateReportBodyDto
+  ): Promise<ReportModelDto> {
+    const report = await this.reportService.updateReport({
+      where: { id: reportId },
+      data: {
+        name: reportData.name,
+        shortLinks: {
+          deleteMany: {}, // удаляет все существующие связи
+          create: reportData.shortLinkIds.map((shortLinkId) => ({
+            shortLink: {
+              connect: { id: shortLinkId },
+            },
+          })),
+        },
+      },
+    });
 
-    const userId = user.sub;
+    const dto: ReportModelDto = {
+      ...report,
+      createdAt: report.createdAt.toISOString(),
+    };
 
-    return this.reportsService.findAll(userId);
+    return dto;
   }
 
-  @Get(':id/stats')
-  // TODO: add view permission check
+  @UseGuards(IsReportAdminGuard)
+  @Delete(':reportId')
+  async deleteLinkByShortKey(@Param('reportId') reportId: string) {
+    return await this.reportService.deleteReport({ id: reportId });
+  }
+
+  @Get(':reportId/stats')
+  @UseGuards(HasReportViewPermissionGuard)
   async getStatsForReport(
-    @Param('id') reportId: string,
+    @Param('reportId') reportId: string,
     @Query('timeScale') timeScale: 'hour' | 'day' | 'month',
     @Query('from') from?: string,
     @Query('to') to?: string
@@ -72,11 +145,7 @@ export class ReportController {
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
       include: {
-        shortLinks: {
-          include: {
-            shortLink: true,
-          },
-        },
+        shortLinks: { include: { shortLink: true } },
         permissions: true,
       },
     });
@@ -84,6 +153,9 @@ export class ReportController {
     if (!report) {
       throw new NotFoundException(`Report with id '${reportId}' not found`);
     }
+
+    const parsedFrom = from ? new Date(from) : undefined;
+    const parsedTo = to ? new Date(to) : undefined;
 
     const timeScaleQuery = {
       hour: Prisma.sql`'hour'`,
@@ -103,13 +175,22 @@ export class ReportController {
       month: Prisma.sql`'MM-YYYY'`,
     }[timeScale];
 
-    const parsedFrom = from ? new Date(from) : undefined;
-    const parsedTo = to ? new Date(to) : undefined;
+    const labelFormat = {
+      hour: 'dd-MM-yyyy HH:mm:ss',
+      day: 'dd-MM-yyyy',
+      month: 'MM-yyyy',
+    }[timeScale];
 
-    const linksStats = await Promise.all(
-      report.shortLinks.map(async (link) => {
-        const shortLink = link.shortLink;
+    const parseLabel = (label: string): Date => {
+      const parsed = parse(label, labelFormat, new Date());
+      if (!isValid(parsed)) {
+        throw new Error(`Invalid label format: ${label}`);
+      }
+      return parsed;
+    };
 
+    const linksStatsRaw = await Promise.all(
+      report.shortLinks.map(async ({ shortLink }) => {
         const minDateSql = parsedFrom
           ? Prisma.sql`${parsedFrom}`
           : Prisma.sql`(SELECT MIN(DATE_TRUNC(${timeScaleQuery}, "clickedAt")) FROM "LinkStat" WHERE "shortLinkId" = ${shortLink.id})`;
@@ -118,14 +199,10 @@ export class ReportController {
           ? Prisma.sql`${parsedTo}`
           : Prisma.sql`NOW()`;
 
-        const stats: Array<{ period: string; clicks: number }> = await this
+        const rawStats: Array<{ period: string; clicks: number }> = await this
           .prisma.$queryRaw`
         WITH time_series AS (
-          SELECT generate_series(
-            ${minDateSql},
-            ${maxDateSql},
-            ${interval}
-          ) AS period
+          SELECT generate_series(${minDateSql}, ${maxDateSql}, ${interval}) AS period
         )
         SELECT
           TO_CHAR(t.period, ${format}) AS period,
@@ -134,27 +211,47 @@ export class ReportController {
         LEFT JOIN "LinkStat" l
           ON DATE_TRUNC(${timeScaleQuery}, l."clickedAt") = t.period
           AND l."shortLinkId" = ${shortLink.id}
-          ${parsedFrom ? Prisma.sql`AND l."clickedAt" >= ${parsedFrom}` : Prisma.empty}
-          ${parsedTo ? Prisma.sql`AND l."clickedAt" <= ${parsedTo}` : Prisma.empty}
+          ${
+            parsedFrom
+              ? Prisma.sql`AND l."clickedAt" >= ${parsedFrom}`
+              : Prisma.empty
+          }
+          ${
+            parsedTo
+              ? Prisma.sql`AND l."clickedAt" <= ${parsedTo}`
+              : Prisma.empty
+          }
         GROUP BY t.period
         ORDER BY t.period;
       `;
 
-      const [total, byDevice, byBrowser, byReferrer] = await Promise.all([
-          this.linkStatService.getTotalClicks({shortKey: shortLink.shortKey, from: parsedFrom, to: parsedTo}),
-          this.linkStatService.getClicksByDeviceType({shortKey: shortLink.shortKey, from: parsedFrom, to: parsedTo}),
-          this.linkStatService.getClicksByBrowser({shortKey: shortLink.shortKey, from: parsedFrom, to: parsedTo}),
-          this.linkStatService.getClicksByReferrer({shortKey: shortLink.shortKey, from: parsedFrom, to: parsedTo}),
+        const [total, byDevice, byBrowser, byReferrer] = await Promise.all([
+          this.linkStatService.getTotalClicks({
+            shortKey: shortLink.shortKey,
+            from: parsedFrom,
+            to: parsedTo,
+          }),
+          this.linkStatService.getClicksByDeviceType({
+            shortKey: shortLink.shortKey,
+            from: parsedFrom,
+            to: parsedTo,
+          }),
+          this.linkStatService.getClicksByBrowser({
+            shortKey: shortLink.shortKey,
+            from: parsedFrom,
+            to: parsedTo,
+          }),
+          this.linkStatService.getClicksByReferrer({
+            shortKey: shortLink.shortKey,
+            from: parsedFrom,
+            to: parsedTo,
+          }),
         ]);
-
-        const labels = stats.map((s) => s.period);
-        const values = stats.map((s) => s.clicks);
 
         return {
           shortLinkId: shortLink.id,
           shortKey: shortLink.shortKey,
-          labels,
-          values,
+          rawStats,
           total,
           byDevice,
           byBrowser,
@@ -163,8 +260,35 @@ export class ReportController {
       })
     );
 
-    // Merge all link stats into one aggregate report
-    const aggregate = this.reportsService.mergeStats(linksStats);
+    const fullLabelSet = new Set<string>();
+    linksStatsRaw.forEach((linkStat) => {
+      linkStat.rawStats.forEach((s) => fullLabelSet.add(s.period));
+    });
+
+    const allLabels = Array.from(fullLabelSet)
+      .map((label) => ({ label, date: parseLabel(label) }))
+      .sort((a, b) => a.date.getTime() - b.date.getTime())
+      .map(({ label }) => label);
+
+    const linksStats = linksStatsRaw.map((linkStat) => {
+      const statMap = new Map(
+        linkStat.rawStats.map((s) => [s.period, s.clicks])
+      );
+      const values = allLabels.map((label) => statMap.get(label) ?? 0);
+
+      return {
+        shortLinkId: linkStat.shortLinkId,
+        shortKey: linkStat.shortKey,
+        labels: allLabels,
+        values,
+        total: linkStat.total,
+        byDevice: linkStat.byDevice,
+        byBrowser: linkStat.byBrowser,
+        byReferrer: linkStat.byReferrer,
+      };
+    });
+
+    const aggregate = this.reportService.mergeStats(linksStats);
 
     return {
       aggregate,
