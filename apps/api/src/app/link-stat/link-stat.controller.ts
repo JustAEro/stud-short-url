@@ -10,6 +10,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LinkStatService } from './link-stat.service';
+import {
+  LinkDetailedStatsDto,
+  LinkStatClicksDto,
+} from '@stud-short-url/common';
 
 @Controller('link-stat')
 export class LinkStatController {
@@ -23,7 +27,7 @@ export class LinkStatController {
   async getStats(
     @Param('shortKey') shortKey: string,
     @Query('timeScale') timeScale: 'hour' | 'day' | 'month'
-  ) {
+  ): Promise<LinkStatClicksDto> {
     const shortLink = await this.prisma.shortLink.findUnique({
       where: { shortKey },
     });
@@ -63,12 +67,12 @@ export class LinkStatController {
         ${interval}
       ) AS period
     )
-    SELECT 
-      TO_CHAR(t.period, ${format}) AS period, 
+    SELECT
+      TO_CHAR(t.period, ${format}) AS period,
       COALESCE(COUNT(l."id")::int, 0) AS clicks
     FROM time_series t
-    LEFT JOIN "LinkStat" l 
-      ON DATE_TRUNC(${timeScaleQuery}, l."clickedAt") = t.period 
+    LEFT JOIN "LinkStat" l
+      ON DATE_TRUNC(${timeScaleQuery}, l."clickedAt") = t.period
       AND l."shortLinkId" = ${shortLink.id}
     GROUP BY t.period
     ORDER BY t.period;
@@ -82,12 +86,21 @@ export class LinkStatController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':shortKey/details')
-  async getDetailedStats(@Param('shortKey') shortKey: string) {
+  async getDetailedStats(
+    @Param('shortKey') shortKey: string
+  ): Promise<LinkDetailedStatsDto> {
+    const [total, byDevice, byBrowser, byReferrer] = await Promise.all([
+      this.linkStatService.getTotalClicks({ shortKey }),
+      this.linkStatService.getClicksByDeviceType({ shortKey }),
+      this.linkStatService.getClicksByBrowser({ shortKey }),
+      this.linkStatService.getClicksByReferrer({ shortKey }),
+    ]);
+
     return {
-      total: await this.linkStatService.getTotalClicks(shortKey),
-      byDevice: await this.linkStatService.getClicksByDeviceType(shortKey),
-      byBrowser: await this.linkStatService.getClicksByBrowser(shortKey),
-      byReferrer: await this.linkStatService.getClicksByReferrer(shortKey),
+      total,
+      byDevice,
+      byBrowser,
+      byReferrer,
     };
   }
 }
