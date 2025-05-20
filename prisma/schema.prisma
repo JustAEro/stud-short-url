@@ -8,25 +8,28 @@ datasource db {
 }
 
 model User {
-  id           String      @id @default(uuid())
-  login        String      @unique
-  password     String
-  accessToken  String?
-  createdLinks ShortLink[]
-  permissions EditPermission[]
+  id                String             @id @default(uuid())
+  login             String             @unique
+  password          String
+  accessToken       String?
+  createdLinks      ShortLink[]
+  permissions       EditPermission[]
+  reports           Report[]
+  reportPermissions ReportPermission[]
 }
 
 model ShortLink {
-  id              String     @id @default(uuid())
+  id              String            @id @default(uuid())
   longLink        String
-  shortKey        String     @unique
+  shortKey        String            @unique
   createdByUserId String
-  createdAt       DateTime   @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime   @updatedAt @default(now()) @db.Timestamptz(6)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
   description     String
   linkStats       LinkStat[]
-  user            User       @relation(fields: [createdByUserId], references: [id])
+  user            User              @relation(fields: [createdByUserId], references: [id])
   permissions     EditPermission[]
+  reports         ReportShortLink[]
 }
 
 model LinkStat {
@@ -46,12 +49,45 @@ enum PermissionRole {
 }
 
 model EditPermission {
-  id          String    @id @default(uuid())
-  userId      String      
-  shortLinkId String   
+  id          String         @id @default(uuid())
+  userId      String
+  shortLinkId String
   role        PermissionRole
-  user        User      @relation(fields: [userId], references: [id])
-  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
-  
+  user        User           @relation(fields: [userId], references: [id])
+  shortLink   ShortLink      @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
+
   @@unique([userId, shortLinkId])
+}
+
+model Report {
+  id              String             @id @default(uuid())
+  name            String
+  createdAt       DateTime           @default(now()) @db.Timestamptz(6)
+  createdByUserId String
+  creatorUser     User               @relation(fields: [createdByUserId], references: [id])
+  shortLinks      ReportShortLink[]
+  permissions     ReportPermission[]
+}
+
+model ReportShortLink {
+  id          String    @id @default(uuid())
+  reportId    String
+  shortLinkId String
+
+  report      Report    @relation(fields: [reportId], references: [id])
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id])
+
+  @@unique([reportId, shortLinkId])
+}
+
+model ReportPermission {
+  id       String         @id @default(uuid())
+  userId   String
+  reportId String
+  role     PermissionRole
+
+  user   User   @relation(fields: [userId], references: [id])
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, reportId])
 }
