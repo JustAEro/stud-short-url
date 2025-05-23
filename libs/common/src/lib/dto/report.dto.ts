@@ -22,12 +22,12 @@ export type ReportModelDto = {
   name: string;
   createdAt: string;
   createdByUserId: string;
-}
+};
 
-export type ReportWithPermissionsDto = ReportModelDto & {
+export type ReportWithPermissionsDto = ReportDto & {
   role: 'viewer' | 'editor' | 'admin';
   creatorUser: {
     login: string;
     id: string;
   };
-}
+};

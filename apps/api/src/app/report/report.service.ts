@@ -150,7 +150,15 @@ export class ReportService {
   }): Promise<ReportWithPermissionsDto> {
     const report = await this.prismaService.report.findUnique({
       where: { id: reportId },
-      include: { permissions: true, creatorUser: true },
+      include: {
+        permissions: true,
+        creatorUser: true,
+        shortLinks: {
+          include: {
+            shortLink: true,
+          },
+        },
+      },
     });
 
     if (!report) {
@@ -164,7 +172,11 @@ export class ReportService {
     }
 
     return {
-      ...report,
+      id: report.id,
+      name: report.name,
+      createdByUserId: report.createdByUserId,
+      shortLinks: report.shortLinks,
+      creatorUser: report.creatorUser,
       createdAt: report.createdAt.toISOString(),
       role: permission.role,
     };
