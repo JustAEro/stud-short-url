@@ -11,6 +11,7 @@ import {
   Request,
   Put,
   Delete,
+  Res,
 } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -30,6 +31,10 @@ import { parse, isValid } from 'date-fns';
 import { HasReportViewPermissionGuard } from '../report-permission/has-report-view-permission.guard';
 import { HasReportEditPermissionGuard } from '../report-permission/has-report-edit-permission.guard';
 import { IsReportAdminGuard } from '../report-permission/is-report-admin.guard';
+import { Response } from 'express';
+import { createObjectCsvStringifier } from 'csv-writer';
+import * as ExcelJS from 'exceljs';
+import { StreamableFile } from '@nestjs/common';
 
 @UseGuards(JwtAuthGuard)
 @Controller('reports')
@@ -294,5 +299,138 @@ export class ReportController {
       aggregate,
       linksStats,
     };
+  }
+
+  @Get(':reportId/export')
+  @UseGuards(HasReportViewPermissionGuard)
+  async exportReportDetailed(
+    @Param('reportId') reportId: string,
+    @Query('format') format: 'csv' | 'excel' = 'csv',
+    @Query('timeScale') timeScale: 'hour' | 'day' | 'month' = 'hour',
+    @Res({ passthrough: true }) res: Response,
+    @Query('from') from?: string,
+    @Query('to') to?: string
+  ) {
+    // Получаем статистику, аналогично твоему методу getStatsForReport
+    const stats: FullReportDto = await this.getStatsForReport(
+      reportId,
+      timeScale,
+      from,
+      to
+    );
+
+    // Подготавливаем строки для экспорта
+    const rows: Array<{
+      shortLink: string;
+      period: string;
+      clicks: number;
+      deviceType: string;
+      browser: string;
+      referrer: string;
+    }> = [];
+
+    for (const linkStat of stats.linksStats) {
+      // Добавляем по периодам основную статистику
+      for (let i = 0; i < linkStat.labels.length; i++) {
+        rows.push({
+          shortLink: linkStat.shortKey,
+          period: linkStat.labels[i],
+          clicks: linkStat.values[i],
+          deviceType: '',
+          browser: '',
+          referrer: '',
+        });
+      }
+
+      // Добавляем агрегаты по устройствам (без разбивки по периодам)
+      for (const d of linkStat.byDevice) {
+        rows.push({
+          shortLink: linkStat.shortKey,
+          period: 'ALL',
+          clicks: d._count._all,
+          deviceType: d.deviceType,
+          browser: '',
+          referrer: '',
+        });
+      }
+
+      // По браузерам
+      for (const b of linkStat.byBrowser) {
+        rows.push({
+          shortLink: linkStat.shortKey,
+          period: 'ALL',
+          clicks: b._count._all,
+          deviceType: '',
+          browser: b.browser,
+          referrer: '',
+        });
+      }
+
+      // По реферерам
+      for (const r of linkStat.byReferrer) {
+        rows.push({
+          shortLink: linkStat.shortKey,
+          period: 'ALL',
+          clicks: r._count._all,
+          deviceType: '',
+          browser: '',
+          referrer: r.referrer ?? 'null',
+        });
+      }
+    }
+
+    if (format === 'csv') {
+      const csvStringifier = createObjectCsvStringifier({
+        header: [
+          { id: 'shortLink', title: 'Short Link' },
+          { id: 'period', title: 'Period' },
+          { id: 'clicks', title: 'Clicks' },
+          { id: 'deviceType', title: 'Device Type' },
+          { id: 'browser', title: 'Browser' },
+          { id: 'referrer', title: 'Referrer' },
+        ],
+      });
+
+      const csvHeader = csvStringifier.getHeaderString();
+      const csvBody = csvStringifier.stringifyRecords(rows);
+      const csvContent = csvHeader + csvBody;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=report-${reportId}.csv`
+      );
+
+      return csvContent;
+    } else {
+      // Excel export
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Report Detailed');
+
+      sheet.columns = [
+        { header: 'Short Link', key: 'shortLink', width: 20 },
+        { header: 'Period', key: 'period', width: 20 },
+        { header: 'Clicks', key: 'clicks', width: 10 },
+        { header: 'Device Type', key: 'deviceType', width: 15 },
+        { header: 'Browser', key: 'browser', width: 15 },
+        { header: 'Referrer', key: 'referrer', width: 30 },
+      ];
+
+      rows.forEach((row) => sheet.addRow(row));
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const uint8Array = new Uint8Array(buffer);
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename=report-${reportId}.xlsx`
+      );
+
+      return new StreamableFile(uint8Array);
+    }
   }
 }
