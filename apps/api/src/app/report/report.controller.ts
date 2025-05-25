@@ -12,6 +12,8 @@ import {
   Put,
   Delete,
   Res,
+  ForbiddenException,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ReportService } from './report.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -23,6 +25,7 @@ import {
   FullReportDto,
   ReportDto,
   ReportModelDto,
+  ReportsPaginatedDto,
   ReportWithPermissionsDto,
   RequestUserPayloadDto,
   UpdateReportBodyDto,
@@ -34,7 +37,7 @@ import { IsReportAdminGuard } from '../report-permission/is-report-admin.guard';
 import { Response } from 'express';
 import { createObjectCsvStringifier } from 'csv-writer';
 import * as ExcelJS from 'exceljs';
-import { StreamableFile } from '@nestjs/common';
+import { longUrlFromShortKey } from '../shared/long-url-from-short-key';
 
 @UseGuards(JwtAuthGuard)
 @Controller('reports')
@@ -46,18 +49,48 @@ export class ReportController {
   ) {}
 
   @Get()
-  async findAll(@Req() req: any): Promise<ReportDto[]> {
+  async findAll(
+    @Query('sortBy')
+    sortBy: 'updatedAt' | 'createdAt' | 'name' | undefined,
+
+    @Query('sortDirection')
+    direction: 'asc' | 'desc' | undefined,
+
+    @Query('search')
+    search = '',
+
+    @Query('page')
+    page = 1,
+
+    @Query('limit')
+    limit = 5,
+
+    @Request() req: any
+  ): Promise<ReportsPaginatedDto> {
     const user: RequestUserPayloadDto = req.user;
 
-    const userId = user.sub;
+    const allSorted = await this.reportService.findAllSorted({
+      sortBy,
+      direction,
+      search,
+      page,
+      limit,
+      userId: user.sub,
+    });
 
-    const reports = await this.reportService.findAll(userId);
-
-    const dtos = reports.map((report) =>
-      this.reportService.reportApiToDto(report)
-    );
-
-    return dtos;
+    return {
+      data: allSorted.data.map((report) => {
+        const dto = this.reportService.reportApiToDto(report);
+        return {
+          ...dto,
+          createdAt: dto.createdAt,
+          customStart: dto.customStart,
+          customEnd: dto.customEnd,
+        };
+      }),
+      totalPages: allSorted.totalPages,
+      currentPage: allSorted.currentPage,
+    };
   }
 
   @Get(':reportId')
@@ -92,7 +125,12 @@ export class ReportController {
     const report = await this.reportService.createReport(
       userId,
       body.name,
-      body.shortLinkIds
+      body.shortLinkIds,
+      body.chartType,
+      body.timeScale,
+      body.periodType,
+      body.customStart,
+      body.customEnd
     );
 
     if (!report) {
@@ -114,6 +152,11 @@ export class ReportController {
       where: { id: reportId },
       data: {
         name: reportData.name,
+        timeScale: reportData.timeScale,
+        chartType: reportData.chartType,
+        periodType: reportData.periodType,
+        customStart: reportData.customStart,
+        customEnd: reportData.customEnd,
         shortLinks: {
           deleteMany: {}, // удаляет все существующие связи
           create: reportData.shortLinkIds.map((shortLinkId) => ({
@@ -126,8 +169,15 @@ export class ReportController {
     });
 
     const dto: ReportModelDto = {
-      ...report,
+      id: report.id,
+      name: report.name,
       createdAt: report.createdAt.toISOString(),
+      createdByUserId: report.createdByUserId,
+      timeScale: report.timeScale,
+      chartType: report.chartType,
+      periodType: report.periodType,
+      customStart: report.customStart?.toISOString(),
+      customEnd: report.customEnd?.toISOString(),
     };
 
     return dto;
@@ -142,11 +192,17 @@ export class ReportController {
   @Get(':reportId/stats')
   @UseGuards(HasReportViewPermissionGuard)
   async getStatsForReport(
+    @Req() req: any,
     @Param('reportId') reportId: string,
-    @Query('timeScale') timeScale: 'hour' | 'day' | 'month',
+    @Query('timezoneOffsetInMinutes', ParseIntPipe) timezoneOffsetInMinutes: number, // positive in MSK TZ
+    @Query('timeScale') timeScale?: 'hour' | 'day' | 'month',
     @Query('from') from?: string,
     @Query('to') to?: string
   ): Promise<FullReportDto> {
+    console.log(timezoneOffsetInMinutes);
+    const user: RequestUserPayloadDto = req.user;
+
+    const userId = user.sub;
     const report = await this.prisma.report.findUnique({
       where: { id: reportId },
       include: {
@@ -159,32 +215,75 @@ export class ReportController {
       throw new NotFoundException(`Report with id '${reportId}' not found`);
     }
 
-    const parsedFrom = from ? new Date(from) : undefined;
-    const parsedTo = to ? new Date(to) : undefined;
+    // Определяем from/to исходя из параметров запроса или из настроек отчёта
+    let parsedFrom: Date | undefined;
+    let parsedTo: Date | undefined;
+
+    if (from && to) {
+      parsedFrom = new Date(from);
+      parsedTo = new Date(to);
+    } else {
+      // Определяем по periodType из отчёта
+      const now = new Date();
+      console.log(now.toISOString());
+      const clientNow = new Date(now.getTime() - timezoneOffsetInMinutes * 60 * 1000);
+
+      switch (report.periodType) {
+        case 'last24h':
+          parsedFrom = new Date(clientNow.getTime() - 24 * 3600 * 1000);
+          parsedTo = clientNow;
+          break;
+        case 'last7d':
+          parsedFrom = new Date(clientNow.getTime() - 7 * 24 * 3600 * 1000);
+          parsedTo = clientNow;
+          break;
+        case 'last30d':
+          parsedFrom = new Date(clientNow.getTime() - 30 * 24 * 3600 * 1000);
+          parsedTo = clientNow;
+          break;
+        case 'last365d':
+          parsedFrom = new Date(clientNow.getTime() - 365 * 24 * 3600 * 1000);
+          parsedTo = clientNow;
+          break;
+        case 'allTime':
+          parsedFrom = undefined; // будет вычисляться динамически
+          parsedTo = clientNow;
+          break;
+        case 'custom':
+          parsedFrom = report.customStart ?? undefined;
+          parsedTo = report.customEnd ?? clientNow;
+          break;
+        default:
+          parsedFrom = undefined;
+          parsedTo = clientNow;
+      }
+    }
+
+    const parsedTimeScale = timeScale ?? report.timeScale;
 
     const timeScaleQuery = {
       hour: Prisma.sql`'hour'`,
       day: Prisma.sql`'day'`,
       month: Prisma.sql`'month'`,
-    }[timeScale];
+    }[parsedTimeScale];
 
     const interval = {
       hour: Prisma.sql`INTERVAL '1 hour'`,
       day: Prisma.sql`INTERVAL '1 day'`,
       month: Prisma.sql`INTERVAL '1 month'`,
-    }[timeScale];
+    }[parsedTimeScale];
 
     const format = {
       hour: Prisma.sql`'DD-MM-YYYY HH24:MI:SS'`,
       day: Prisma.sql`'DD-MM-YYYY'`,
       month: Prisma.sql`'MM-YYYY'`,
-    }[timeScale];
+    }[parsedTimeScale];
 
     const labelFormat = {
       hour: 'dd-MM-yyyy HH:mm:ss',
       day: 'dd-MM-yyyy',
       month: 'MM-yyyy',
-    }[timeScale];
+    }[parsedTimeScale];
 
     const parseLabel = (label: string): Date => {
       const parsed = parse(label, labelFormat, new Date());
@@ -214,7 +313,7 @@ export class ReportController {
           COALESCE(COUNT(l."id")::int, 0) AS clicks
         FROM time_series t
         LEFT JOIN "LinkStat" l
-          ON DATE_TRUNC(${timeScaleQuery}, l."clickedAt") = t.period
+          ON DATE_TRUNC(${timeScaleQuery}, l."clickedAt") = DATE_TRUNC(${timeScaleQuery}, t.period)
           AND l."shortLinkId" = ${shortLink.id}
           ${
             parsedFrom
@@ -256,6 +355,7 @@ export class ReportController {
         return {
           shortLinkId: shortLink.id,
           shortKey: shortLink.shortKey,
+          description: shortLink.description,
           rawStats,
           total,
           byDevice,
@@ -284,6 +384,7 @@ export class ReportController {
       return {
         shortLinkId: linkStat.shortLinkId,
         shortKey: linkStat.shortKey,
+        description: linkStat.description,
         labels: allLabels,
         values,
         total: linkStat.total,
@@ -295,7 +396,19 @@ export class ReportController {
 
     const aggregate = this.reportService.mergeStats(linksStats);
 
+    const permission = report.permissions.find((p) => p.userId === userId);
+
+    if (!permission) {
+      throw new ForbiddenException('У вас нет доступа к этому отчету');
+    }
+
     return {
+      ...report,
+      role: permission.role,
+      createdAt: report.createdAt.toISOString(),
+      updatedAt: report.updatedAt.toISOString(),
+      customStart: report.customStart?.toISOString(),
+      customEnd: report.customEnd?.toISOString(),
       aggregate,
       linksStats,
     };
@@ -304,133 +417,168 @@ export class ReportController {
   @Get(':reportId/export')
   @UseGuards(HasReportViewPermissionGuard)
   async exportReportDetailed(
-    @Param('reportId') reportId: string,
-    @Query('format') format: 'csv' | 'excel' = 'csv',
-    @Query('timeScale') timeScale: 'hour' | 'day' | 'month' = 'hour',
+    @Req() req: any,
     @Res({ passthrough: true }) res: Response,
+    @Param('reportId') reportId: string,
+    @Query('timezoneOffsetInMinutes', ParseIntPipe) timezoneOffsetInMinutes: number,
+    @Query('format') format: 'csv' | 'xlsx' = 'csv',
+    @Query('timeScale') timeScale?: 'hour' | 'day' | 'month',
     @Query('from') from?: string,
     @Query('to') to?: string
   ) {
-    // Получаем статистику, аналогично твоему методу getStatsForReport
-    const stats: FullReportDto = await this.getStatsForReport(
+    const report = await this.prisma.report.findUnique({
+      where: { id: reportId },
+      include: { shortLinks: true },
+    });
+
+    if (!report) {
+      throw new NotFoundException('Report not found');
+    }
+
+    const shortLinkIds = report.shortLinks.map((sl) => sl.shortLinkId);
+
+    const links = await this.prisma.shortLink.findMany({
+      where: { id: { in: shortLinkIds } },
+      include: {
+        user: { select: { login: true } },
+      },
+    });
+
+    const stats = await this.getStatsForReport(
+      req,
       reportId,
+      timezoneOffsetInMinutes,
       timeScale,
       from,
       to
     );
+    const { aggregate, linksStats } = stats;
 
-    // Подготавливаем строки для экспорта
-    const rows: Array<{
-      shortLink: string;
-      period: string;
-      clicks: number;
-      deviceType: string;
-      browser: string;
-      referrer: string;
-    }> = [];
+    const allLabels = linksStats[0].labels;
 
-    for (const linkStat of stats.linksStats) {
-      // Добавляем по периодам основную статистику
-      for (let i = 0; i < linkStat.labels.length; i++) {
-        rows.push({
-          shortLink: linkStat.shortKey,
-          period: linkStat.labels[i],
-          clicks: linkStat.values[i],
-          deviceType: '',
-          browser: '',
-          referrer: '',
-        });
-      }
+    const finalHeaders = [
+      { id: 'shortLink', title: 'shortLink' },
+      { id: 'description', title: 'description' },
+      { id: 'longLink', title: 'longLink' },
+      { id: 'createdAt', title: 'createdAt' },
+      { id: 'updatedAt', title: 'updatedAt' },
+      { id: 'createdByUserLogin', title: 'createdByUserLogin' },
+    ];
 
-      // Добавляем агрегаты по устройствам (без разбивки по периодам)
-      for (const d of linkStat.byDevice) {
-        rows.push({
-          shortLink: linkStat.shortKey,
-          period: 'ALL',
-          clicks: d._count._all,
-          deviceType: d.deviceType,
-          browser: '',
-          referrer: '',
-        });
-      }
+    const linkRows = links.map((link) => ({
+      shortLink: longUrlFromShortKey(link.shortKey),
+      description: link.description,
+      longLink: link.longLink,
+      createdAt: link.createdAt,
+      updatedAt: link.updatedAt,
+      createdByUserLogin: link.user.login,
+    }));
 
-      // По браузерам
-      for (const b of linkStat.byBrowser) {
-        rows.push({
-          shortLink: linkStat.shortKey,
-          period: 'ALL',
-          clicks: b._count._all,
-          deviceType: '',
-          browser: b.browser,
-          referrer: '',
-        });
-      }
+    const aggregateRows = [
+      { metric: 'Total Clicks', value: aggregate.total },
+      ...aggregate.byDevice.map((d) => ({
+        metric: `Device: ${d.deviceType}`,
+        value: d._count._all,
+      })),
+      ...aggregate.byBrowser.map((b) => ({
+        metric: `Browser: ${b.browser}`,
+        value: b._count._all,
+      })),
+      ...aggregate.byReferrer.map((r) => ({
+        metric: `Referrer: ${r.referrer}`,
+        value: r._count._all,
+      })),
+    ];
 
-      // По реферерам
-      for (const r of linkStat.byReferrer) {
-        rows.push({
-          shortLink: linkStat.shortKey,
-          period: 'ALL',
-          clicks: r._count._all,
-          deviceType: '',
-          browser: '',
-          referrer: r.referrer ?? 'null',
-        });
-      }
-    }
+    const linkStatRows = linksStats.map((stat) => {
+      const row = [longUrlFromShortKey(stat.shortKey), ...stat.values];
+      const additional = [
+        ...stat.byDevice.map(
+          (d) => `Device: ${d.deviceType} = ${d._count._all}`
+        ),
+        ...stat.byBrowser.map(
+          (b) => `Browser: ${b.browser} = ${b._count._all}`
+        ),
+        ...stat.byReferrer.map(
+          (r) => `Referrer: ${r.referrer} = ${r._count._all}`
+        ),
+      ];
+      return [row, additional];
+    });
 
     if (format === 'csv') {
       const csvStringifier = createObjectCsvStringifier({
-        header: [
-          { id: 'shortLink', title: 'Short Link' },
-          { id: 'period', title: 'Period' },
-          { id: 'clicks', title: 'Clicks' },
-          { id: 'deviceType', title: 'Device Type' },
-          { id: 'browser', title: 'Browser' },
-          { id: 'referrer', title: 'Referrer' },
-        ],
+        header: finalHeaders,
       });
 
-      const csvHeader = csvStringifier.getHeaderString();
-      const csvBody = csvStringifier.stringifyRecords(rows);
-      const csvContent = csvHeader + csvBody;
+      const csvContent = [
+        csvStringifier.getHeaderString(),
+        csvStringifier.stringifyRecords(linkRows),
+        '',
+        'Aggregate Stats:',
+        'Metric,Value',
+        ...aggregateRows.map((r) => `${r.metric},${r.value}`),
+        '',
+        ['Dates', ...allLabels].join(','),
+        ...linkStatRows.map(([mainRow]) => mainRow.join(',')),
+        '',
+        'Per-link additional stats:',
+        ...linkStatRows.flatMap(([mainRow, stats]) => [
+          `Stats for ${mainRow[0]}:`,
+          ...stats.map((s) => `,${s}`),
+          '',
+        ]),
+      ].join('\n');
 
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=report-${reportId}.csv`
-      );
-
-      return csvContent;
-    } else {
-      // Excel export
+      res.set({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="report-${report.name}.csv"`,
+      });
+      res.send(csvContent);
+    } else if (format === 'xlsx') {
       const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet('Report Detailed');
+      const sheet = workbook.addWorksheet('Report');
 
-      sheet.columns = [
-        { header: 'Short Link', key: 'shortLink', width: 20 },
-        { header: 'Period', key: 'period', width: 20 },
-        { header: 'Clicks', key: 'clicks', width: 10 },
-        { header: 'Device Type', key: 'deviceType', width: 15 },
-        { header: 'Browser', key: 'browser', width: 15 },
-        { header: 'Referrer', key: 'referrer', width: 30 },
-      ];
+      // 1. Таблица ссылок
+      sheet.addRow(finalHeaders.map((h) => h.title));
+      for (const row of linkRows) {
+        sheet.addRow(finalHeaders.map((h) => (row as any)[h.id]));
+      }
 
-      rows.forEach((row) => sheet.addRow(row));
+      sheet.addRow([]);
+      sheet.addRow(['Aggregate Stats:']);
+      sheet.addRow(['Metric', 'Value']);
+      for (const r of aggregateRows) {
+        sheet.addRow([r.metric, r.value]);
+      }
 
-      const buffer = await workbook.xlsx.writeBuffer();
-      const uint8Array = new Uint8Array(buffer);
+      sheet.addRow([]);
+      sheet.addRow(['Dates', ...allLabels]);
 
-      res.setHeader(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      );
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename=report-${reportId}.xlsx`
-      );
+      // 2. Только переходы по датам
+      for (const [mainRow] of linkStatRows) {
+        sheet.addRow(mainRow);
+      }
 
-      return new StreamableFile(uint8Array);
+      // 3. Дополнительные метрики по каждой ссылке
+      sheet.addRow([]);
+      sheet.addRow(['Per-link additional stats:']);
+
+      for (const [mainRow, stats] of linkStatRows) {
+        sheet.addRow([`Stats for ${mainRow[0]}`]);
+        for (const stat of stats) {
+          sheet.addRow([null, stat]);
+        }
+        sheet.addRow([]);
+      }
+
+      res.set({
+        'Content-Type':
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="report-${report.name}.xlsx"`,
+      });
+      await workbook.xlsx.write(res);
+      res.end();
     }
   }
 }

@@ -24,7 +24,18 @@ export class ReportService {
   async createReport(
     userId: string,
     name: string,
-    shortLinkIds: string[]
+    shortLinkIds: string[],
+    chartType?: 'line' | 'bar',
+    timeScale?: 'hour' | 'day' | 'month',
+    periodType?:
+      | 'last24h'
+      | 'last7d'
+      | 'last30d'
+      | 'last365d'
+      | 'allTime'
+      | 'custom',
+    customStart?: string,
+    customEnd?: string
   ): Promise<ReportApi | null> {
     const validLinks = await this.prismaService.shortLink.findMany({
       where: { id: { in: shortLinkIds } },
@@ -41,6 +52,11 @@ export class ReportService {
         data: {
           name,
           createdByUserId: userId,
+          chartType,
+          timeScale,
+          periodType,
+          customStart: customStart ? new Date(customStart) : undefined,
+          customEnd: customEnd ? new Date(customEnd) : undefined,
         },
       });
 
@@ -63,7 +79,7 @@ export class ReportService {
       return [report];
     });
 
-    return this.prismaService.report.findUnique({
+    const reportModel = await this.prismaService.report.findUnique({
       where: { id: report.id },
       include: {
         shortLinks: {
@@ -71,13 +87,103 @@ export class ReportService {
         },
       },
     });
+
+    if (!reportModel) {
+      throw new NotFoundException('Отчет не найден');
+    }
+
+    return {
+      id: reportModel.id,
+      name: reportModel.name,
+      createdByUserId: reportModel.createdByUserId,
+      shortLinks: reportModel.shortLinks,
+      createdAt: reportModel.createdAt,
+      updatedAt: reportModel.updatedAt,
+      timeScale: reportModel.timeScale,
+      chartType: reportModel.chartType,
+      periodType: reportModel.periodType,
+      customStart: reportModel.customStart ?? undefined,
+      customEnd: reportModel.customEnd ?? undefined,
+    };
   }
 
-  async findAll(userId: string): Promise<ReportApi[]> {
-    return this.prismaService.report.findMany({
-      where: { permissions: { some: { userId } } },
+  async findAllSorted({
+    sortBy,
+    direction,
+    search,
+    page,
+    limit,
+    userId,
+  }: {
+    sortBy: 'updatedAt' | 'createdAt' | 'name' | undefined;
+    direction: 'asc' | 'desc' | undefined;
+    search: string;
+    page: number;
+    limit: number;
+    userId: string;
+  }) {
+    const orderBy = this.getOrderBy({ sortBy, direction });
+
+    const where = {
+      permissions: { some: { userId } },
+      ...(search
+        ? {
+            name: {
+              contains: search,
+              mode: 'insensitive' as const,
+            },
+          }
+        : {}),
+    };
+
+    const totalCount = await this.prismaService.report.count({ where });
+
+    const reports = await this.prismaService.report.findMany({
+      where,
+      orderBy,
+      skip: (page - 1) * limit,
+      take: Number(limit),
       include: { shortLinks: { include: { shortLink: true } } },
     });
+
+    const data = reports.map((report) => ({
+      id: report.id,
+      name: report.name,
+      createdByUserId: report.createdByUserId,
+      shortLinks: report.shortLinks,
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt,
+      timeScale: report.timeScale,
+      chartType: report.chartType,
+      periodType: report.periodType,
+      customStart: report.customStart ?? undefined,
+      customEnd: report.customEnd ?? undefined,
+    }));
+
+    return {
+      data,
+      totalPages: Math.ceil(totalCount / limit),
+      currentPage: Number(page),
+    };
+  }
+
+  private getOrderBy({
+    sortBy,
+    direction,
+  }: {
+    sortBy: 'updatedAt' | 'createdAt' | 'name' | undefined;
+    direction: 'asc' | 'desc' | undefined;
+  }) {
+    switch (sortBy) {
+      case 'createdAt':
+        return { createdAt: direction ?? ('desc' as const) };
+      case 'updatedAt':
+        return { updatedAt: direction ?? ('desc' as const) };
+      case 'name':
+        return { name: direction ?? ('asc' as const) };
+      default:
+        return { updatedAt: 'desc' as const };
+    }
   }
 
   mergeStats(linksResults: LinkStatReportDto[]): LinkDetailedStatsDto {
@@ -138,6 +244,30 @@ export class ReportService {
       createdByUserId: report.createdByUserId,
       shortLinks: report.shortLinks,
       createdAt: report.createdAt.toISOString(),
+      updatedAt: report.updatedAt.toISOString(),
+      timeScale: report.timeScale,
+      chartType: report.chartType,
+      periodType: report.periodType,
+      customStart: report.customStart?.toISOString(),
+      customEnd: report.customEnd?.toISOString(),
+    };
+  }
+
+  reportDtoToApi(report: ReportDto): ReportApi {
+    return {
+      id: report.id,
+      name: report.name,
+      createdByUserId: report.createdByUserId,
+      shortLinks: report.shortLinks,
+      createdAt: new Date(report.createdAt),
+      updatedAt: new Date(report.updatedAt),
+      timeScale: report.timeScale,
+      chartType: report.chartType,
+      periodType: report.periodType,
+      customStart: report.customStart
+        ? new Date(report.customStart)
+        : undefined,
+      customEnd: report.customEnd ? new Date(report.customEnd) : undefined,
     };
   }
 
@@ -178,7 +308,13 @@ export class ReportService {
       shortLinks: report.shortLinks,
       creatorUser: report.creatorUser,
       createdAt: report.createdAt.toISOString(),
+      updatedAt: report.updatedAt.toISOString(),
       role: permission.role,
+      timeScale: report.timeScale,
+      chartType: report.chartType,
+      periodType: report.periodType,
+      customStart: report.customStart?.toISOString(),
+      customEnd: report.customEnd?.toISOString(),
     };
   }
 

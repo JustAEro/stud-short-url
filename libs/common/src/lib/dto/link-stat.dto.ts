@@ -1,3 +1,5 @@
+import { ReportDto } from "./report.dto";
+
 export type LinkStatClicksDto = {
   labels: string[];
   values: number[];
@@ -34,9 +36,11 @@ export type LinkDetailedStatsDto = {
 export type LinkStatReportDto = LinkStatClicksDto & LinkDetailedStatsDto & {
   shortLinkId: string;
   shortKey: string;
+  description: string;
 };
 
-export type FullReportDto = {
+export type FullReportDto = ReportDto & {
+  role: 'viewer' | 'editor' | 'admin';
   aggregate: LinkDetailedStatsDto;
   linksStats: LinkStatReportDto[];
 };

@@ -59,14 +59,42 @@ model EditPermission {
   @@unique([userId, shortLinkId])
 }
 
+enum TimeScale {
+  hour
+  day
+  month
+}
+
+enum ChartType {
+  line
+  bar
+}
+
+enum PredefinedPeriod {
+  last24h
+  last7d
+  last30d
+  last365d
+  allTime
+  custom
+}
+
 model Report {
   id              String             @id @default(uuid())
   name            String
   createdAt       DateTime           @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
   createdByUserId String
   creatorUser     User               @relation(fields: [createdByUserId], references: [id])
+
   shortLinks      ReportShortLink[]
   permissions     ReportPermission[]
+
+  timeScale       TimeScale          @default(day)
+  chartType       ChartType          @default(line)
+  periodType      PredefinedPeriod   @default(allTime)
+  customStart     DateTime?          @db.Timestamptz(6)
+  customEnd       DateTime?          @db.Timestamptz(6)
 }
 
 model ReportShortLink {
@@ -75,7 +103,7 @@ model ReportShortLink {
   shortLinkId String
 
   report      Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
-  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id])
+  shortLink   ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
 
   @@unique([reportId, shortLinkId])
 }
