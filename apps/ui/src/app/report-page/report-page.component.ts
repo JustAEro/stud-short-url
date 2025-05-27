@@ -26,6 +26,7 @@ import { Chart, registerables } from 'chart.js';
 import { FormsModule } from '@angular/forms';
 import { ReportPermissionsFormComponent } from './report-permissions-form.component';
 import { EditReportComponent } from './edit-report.component';
+import { LinkStatsSummaryComponent } from './link-stats-summary.component';
 
 Chart.register(...registerables);
 
@@ -40,6 +41,7 @@ Chart.register(...registerables);
     FormsModule,
     ReportPermissionsFormComponent,
     EditReportComponent,
+    LinkStatsSummaryComponent,
   ],
   selector: 'app-report-page',
   template: `
@@ -195,6 +197,23 @@ Chart.register(...registerables);
         </div>
 
         <canvas #chartCanvas></canvas>
+
+        <div *ngIf="fullReportDto">
+          <h2>Общая статистика</h2>
+          <app-link-stats-summary
+            [stats]="fullReportDto.aggregate"
+            title="Общее по всем ссылкам"
+          ></app-link-stats-summary>
+
+          <h2>Статистика по ссылкам</h2>
+          <ng-container *ngFor="let linkStat of fullReportDto.linksStats">
+            <app-link-stats-summary
+              [stats]="linkStat"
+              [title]="linkStat.shortKey"
+              [description]="linkStat.description"
+            ></app-link-stats-summary>
+          </ng-container>
+        </div>
       </div>
 
       <div *ngIf="this.report.role === 'admin'">
@@ -390,20 +409,6 @@ export class ReportPageComponent implements OnInit, OnDestroy {
           // Можно показать уведомление об ошибке, если нужно
         },
       });
-  }
-
-  private updateAggregateDevicesStats() {
-    if (!this.fullReportDto || !this.fullReportDto.linksStats) {
-      this.aggregateDevicesStats = {};
-      return;
-    }
-
-    this.aggregateDevicesStats = Object.fromEntries(
-      this.fullReportDto.aggregate.byDevice.map((d) => [
-        d.deviceType,
-        d._count._all,
-      ])
-    );
   }
 
   ngOnDestroy() {

@@ -11,6 +11,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Chart, registerables, ChartType } from 'chart.js';
 import {
+  LinkDetailedStatsDto,
   ShortLinkDto,
   ShortLinkWithPermissionsDto,
   UpdateShortLinkDto,
@@ -22,6 +23,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { DeleteConfirmationDialogComponent } from './delete-confirmation-dialog.component';
 import { PermissionsFormComponent } from './permissions-form.component';
 import { QrDialogComponent } from '../qr-dialog/qr-dialog.component';
+import { LinkStatsSummaryComponent } from "../report-page/link-stats-summary.component";
 
 Chart.register(...registerables);
 
@@ -35,7 +37,8 @@ Chart.register(...registerables);
     HeaderComponent,
     LucideAngularModule,
     PermissionsFormComponent,
-  ],
+    LinkStatsSummaryComponent
+],
   template: `
     <app-header></app-header>
     <div class="container">
@@ -164,6 +167,11 @@ Chart.register(...registerables);
         </div>
 
         <canvas id="statsChart"></canvas>
+
+        <app-link-stats-summary
+            [stats]="stats"
+            title=""
+          ></app-link-stats-summary>
       </div>
 
       <div *ngIf="role === 'admin'">
@@ -303,6 +311,7 @@ export class ShortLinkPageComponent implements OnInit {
   link!: ShortLinkDto;
   role: 'viewer' | 'editor' | 'admin' = 'viewer';
   creatorLogin = '';
+  stats!: LinkDetailedStatsDto;
 
   constructor(
     private fb: FormBuilder,
@@ -345,6 +354,14 @@ export class ShortLinkPageComponent implements OnInit {
           longUrl: link.longLink,
           description: link.description,
         });
+      });
+
+    this.http
+      .get<LinkDetailedStatsDto>(
+        `/api/v1/link-stat/${shortLinkId}/details`
+      )
+      .subscribe((stats) => {
+        this.stats = stats;
       });
 
     this.initializeChart();
