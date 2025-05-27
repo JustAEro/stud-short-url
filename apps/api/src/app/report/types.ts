@@ -11,7 +11,13 @@ export type ReportApi = {
   }>;
   timeScale: 'hour' | 'day' | 'month';
   chartType: 'line' | 'bar';
-  periodType: 'last24h' | 'last7d' | 'last30d' | 'last365d' | 'allTime' | 'custom';
+  periodType:
+    | 'last24h'
+    | 'last7d'
+    | 'last30d'
+    | 'last365d'
+    | 'allTime'
+    | 'custom';
   customStart?: Date; // ISO date
-  customEnd?: Date;   // ISO date
+  customEnd?: Date; // ISO date
 };

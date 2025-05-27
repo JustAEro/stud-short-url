@@ -246,7 +246,7 @@ export class ReportPermissionService {
     }
 
     const permissions = await this.prisma.reportPermission.findMany({
-      where: { reportId, user: {id: {not: userId}} },
+      where: { reportId, user: { id: { not: userId } } },
       include: { user: true },
     });
 

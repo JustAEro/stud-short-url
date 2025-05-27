@@ -12,8 +12,12 @@ import { MatDialogModule, MatDialogRef } from '@angular/material/dialog';
         Вы уверены, что хотите удалить этот отчет?
       </mat-dialog-content>
       <mat-dialog-actions class="dialog-actions">
-        <button class="cancel-btn" (click)="dialogRef.close(false)">Отмена</button>
-        <button class="delete-btn" (click)="dialogRef.close(true)">Удалить</button>
+        <button class="cancel-btn" (click)="dialogRef.close(false)">
+          Отмена
+        </button>
+        <button class="delete-btn" (click)="dialogRef.close(true)">
+          Удалить
+        </button>
       </mat-dialog-actions>
     </div>
   `,

@@ -24,6 +24,8 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { Chart, registerables } from 'chart.js';
 import { FormsModule } from '@angular/forms';
+import { ReportPermissionsFormComponent } from './report-permissions-form.component';
+import { EditReportComponent } from './edit-report.component';
 
 Chart.register(...registerables);
 
@@ -36,6 +38,8 @@ Chart.register(...registerables);
     MatMenuModule,
     MatButtonModule,
     FormsModule,
+    ReportPermissionsFormComponent,
+    EditReportComponent,
   ],
   selector: 'app-report-page',
   template: `
@@ -98,6 +102,15 @@ Chart.register(...registerables);
         </div>
       </div>
 
+      <div class="edit-section" *ngIf="report.role !== 'viewer'">
+        <h2 style="text-align: center;">Редактировать отчёт</h2>
+        <app-edit-report
+          [report]="report"
+          (reportUpdateRequested)="onReportUpdate($event)"
+          (reportDeleteRequested)="confirmDelete()"
+        ></app-edit-report>
+      </div>
+
       <div class="stats-section">
         <h2 style="text-align: center;">Статистика</h2>
 
@@ -109,6 +122,7 @@ Chart.register(...registerables);
                 id="timeScale"
                 class="sort-select"
                 [(ngModel)]="editableTimeScale"
+                [disabled]="report.role === 'viewer'"
               >
                 <option value="hour">Час</option>
                 <option value="day">День</option>
@@ -122,6 +136,7 @@ Chart.register(...registerables);
                 id="chartType"
                 class="sort-select"
                 [(ngModel)]="editableChartType"
+                [disabled]="report.role === 'viewer'"
               >
                 <option value="bar">Столбчатый</option>
                 <option value="line">Линейный</option>
@@ -134,6 +149,7 @@ Chart.register(...registerables);
                 id="period"
                 class="sort-select"
                 [(ngModel)]="editablePeriod"
+                [disabled]="report.role === 'viewer'"
               >
                 <option value="last24h">Последние 24 часа</option>
                 <option value="last7d">Последние 7 дней</option>
@@ -151,12 +167,23 @@ Chart.register(...registerables);
           >
             <div class="filter-group" *ngIf="editablePeriod === 'custom'">
               <label>С:</label>
-              <input type="datetime-local" [(ngModel)]="customStartDate" />
+              <input
+                type="datetime-local"
+                [(ngModel)]="customStartDate"
+                [disabled]="report.role === 'viewer'"
+              />
               <label>По:</label>
-              <input type="datetime-local" [(ngModel)]="customEndDate" />
+              <input
+                type="datetime-local"
+                [(ngModel)]="customEndDate"
+                [disabled]="report.role === 'viewer'"
+              />
             </div>
 
-            <div class="filter-group" *ngIf="hasChanges()">
+            <div
+              class="filter-group"
+              *ngIf="hasChanges() && report.role !== 'viewer'"
+            >
               <button (click)="applyChanges()" class="save-cancel-btn">
                 Сохранить
               </button>
@@ -168,6 +195,16 @@ Chart.register(...registerables);
         </div>
 
         <canvas #chartCanvas></canvas>
+      </div>
+
+      <div *ngIf="this.report.role === 'admin'">
+        <h2 style="text-align: center;">Управление правами</h2>
+        <div style="display: flex; justify-content: center;">
+          <app-report-permissions-form
+            [reportId]="this.report.id"
+            (accessDenied)="onAccessDenied()"
+          ></app-report-permissions-form>
+        </div>
       </div>
     </div>
   `,
@@ -297,6 +334,9 @@ export class ReportPageComponent implements OnInit, OnDestroy {
   customEndDate: string | undefined = undefined;
 
   report!: ReportWithPermissionsDto;
+  fullReportDto!: FullReportDto;
+
+  aggregateDevicesStats!: Record<string, number>;
 
   constructor(
     private route: ActivatedRoute,
@@ -326,7 +366,44 @@ export class ReportPageComponent implements OnInit, OnDestroy {
         this.cdr.detectChanges();
         this.initializeChart();
         this.fetchStatistics();
+
+        // Загрузка fullReportDto после загрузки report
+        this.loadFullReport(report.id);
       });
+  }
+
+  private loadFullReport(id: string) {
+    this.http
+      .get<FullReportDto>(`/api/v1/reports/${id}/stats`, {
+        params: { timezoneOffsetInMinutes: 0 },
+      })
+      .subscribe({
+        next: (fullReport) => {
+          this.fullReportDto = fullReport;
+
+          this.cdr.detectChanges();
+          // Здесь можно выполнить дополнительные действия с fullReportDto
+          // например, инициализировать что-то или вызвать обновление UI
+        },
+        error: (err) => {
+          console.error('Ошибка при загрузке полного отчёта:', err);
+          // Можно показать уведомление об ошибке, если нужно
+        },
+      });
+  }
+
+  private updateAggregateDevicesStats() {
+    if (!this.fullReportDto || !this.fullReportDto.linksStats) {
+      this.aggregateDevicesStats = {};
+      return;
+    }
+
+    this.aggregateDevicesStats = Object.fromEntries(
+      this.fullReportDto.aggregate.byDevice.map((d) => [
+        d.deviceType,
+        d._count._all,
+      ])
+    );
   }
 
   ngOnDestroy() {
@@ -429,6 +506,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
         params: { timezoneOffsetInMinutes: 0 },
       })
       .subscribe((data) => {
+        //this.fullReportDto = data;
         this.updateChart(data);
       });
   }
@@ -509,6 +587,29 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     this.router.navigate(['/reports']);
   }
 
+  onReportUpdate(dto: UpdateReportBodyDto) {
+    this.http
+      .put<ReportModelDto>(`/api/v1/reports/${this.report.id}`, dto)
+      .subscribe({
+        next: (updated) => {
+          this.http
+            .get<ReportWithPermissionsDto>(`/api/v1/reports/${updated.id}`)
+            .subscribe((report) => {
+              this.report = report;
+
+              this.cdr.detectChanges();
+            });
+
+          this.fetchStatistics();
+        },
+        error: () => {
+          this.snackBar.open('Ошибка при обновлении отчёта', '', {
+            duration: 3000,
+          });
+        },
+      });
+  }
+
   confirmDelete() {
     const dialogRef = this.dialog.open(DeleteConfirmationDialogComponent);
     dialogRef.afterClosed().subscribe((confirmed) => {
@@ -571,5 +672,11 @@ export class ReportPageComponent implements OnInit, OnDestroy {
     // value - локальное время без временной зоны, создаём дату и конвертируем в ISO с часовым поясом (UTC)
     const date = new Date(value);
     return date.toISOString();
+  }
+
+  permissionAccessDenied = false;
+
+  onAccessDenied(): void {
+    this.permissionAccessDenied = true;
   }
 }

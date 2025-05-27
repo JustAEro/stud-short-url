@@ -42,7 +42,14 @@ export const appConfig: ApplicationConfig = {
       multi: true,
     },
     importProvidersFrom(
-      LucideAngularModule.pick({ User, Plus, ClipboardCopy, Trash, QrCode, ArrowDownToLine })
+      LucideAngularModule.pick({
+        User,
+        Plus,
+        ClipboardCopy,
+        Trash,
+        QrCode,
+        ArrowDownToLine,
+      })
     ),
     importProvidersFrom(MatSnackBarModule),
   ],

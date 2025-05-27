@@ -5,9 +5,15 @@ export type CreateReportBodyDto = {
   shortLinkIds: string[];
   timeScale?: 'hour' | 'day' | 'month';
   chartType?: 'line' | 'bar';
-  periodType?: 'last24h' | 'last7d' | 'last30d' | 'last365d' | 'allTime' | 'custom';
+  periodType?:
+    | 'last24h'
+    | 'last7d'
+    | 'last30d'
+    | 'last365d'
+    | 'allTime'
+    | 'custom';
   customStart?: string; // ISO date
-  customEnd?: string;   // ISO date
+  customEnd?: string; // ISO date
 };
 
 export type UpdateReportBodyDto = CreateReportBodyDto;
@@ -29,9 +35,15 @@ export type ReportDto = {
   }>;
   timeScale: 'hour' | 'day' | 'month';
   chartType: 'line' | 'bar';
-  periodType: 'last24h' | 'last7d' | 'last30d' | 'last365d' | 'allTime' | 'custom';
+  periodType:
+    | 'last24h'
+    | 'last7d'
+    | 'last30d'
+    | 'last365d'
+    | 'allTime'
+    | 'custom';
   customStart?: string; // ISO date
-  customEnd?: string;   // ISO date
+  customEnd?: string; // ISO date
 };
 
 export type ReportModelDto = {
@@ -41,9 +53,15 @@ export type ReportModelDto = {
   createdByUserId: string;
   timeScale: 'hour' | 'day' | 'month';
   chartType: 'line' | 'bar';
-  periodType: 'last24h' | 'last7d' | 'last30d' | 'last365d' | 'allTime' | 'custom';
+  periodType:
+    | 'last24h'
+    | 'last7d'
+    | 'last30d'
+    | 'last365d'
+    | 'allTime'
+    | 'custom';
   customStart?: string; // ISO date
-  customEnd?: string;   // ISO date
+  customEnd?: string; // ISO date
 };
 
 export type ReportWithPermissionsDto = ReportDto & {

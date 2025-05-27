@@ -19,7 +19,9 @@ import {
 @UseGuards(JwtAuthGuard)
 @Controller('report-permission')
 export class ReportPermissionController {
-  constructor(private readonly reportPermissionService: ReportPermissionService) {}
+  constructor(
+    private readonly reportPermissionService: ReportPermissionService
+  ) {}
 
   @Get(':reportId')
   async getPermissions(@Param('reportId') reportId: string, @Req() req: any) {

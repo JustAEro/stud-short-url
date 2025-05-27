@@ -9,12 +9,18 @@ import {
 } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { HeaderComponent } from '../header/header.component';
-import { ReportDto, ShortLinkDto } from '@stud-short-url/common';
+import { CreateReportBodyDto, ShortLinkDto } from '@stud-short-url/common';
+import { ShortLinkSelectorComponent } from '../report-page/short-link-selector.component';
 
 @Component({
   selector: 'app-create-report',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, HeaderComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    HeaderComponent,
+    ShortLinkSelectorComponent,
+  ],
   template: `
     <app-header></app-header>
     <div class="container">
@@ -33,8 +39,7 @@ import { ReportDto, ShortLinkDto } from '@stud-short-url/common';
           <div
             class="error"
             *ngIf="
-              reportForm.get('name')?.invalid &&
-              reportForm.get('name')?.touched
+              reportForm.get('name')?.invalid && reportForm.get('name')?.touched
             "
           >
             Название отчёта обязательно
@@ -43,7 +48,11 @@ import { ReportDto, ShortLinkDto } from '@stud-short-url/common';
 
         <div class="form-group">
           <label for="sortBy">Сортировать по</label>
-          <select id="sortBy" formControlName="sortBy" (change)="loadLinks(true)">
+          <select
+            id="sortBy"
+            formControlName="sortBy"
+            (change)="onSortChange()"
+          >
             <option value="createdAt">Дате создания</option>
             <option value="shortKey">Короткому ключу</option>
             <option value="description">Описанию</option>
@@ -52,50 +61,31 @@ import { ReportDto, ShortLinkDto } from '@stud-short-url/common';
 
         <div class="form-group">
           <label for="sortOrder">Направление сортировки</label>
-          <select id="sortOrder" formControlName="sortOrder" (change)="loadLinks(true)">
+          <select
+            id="sortOrder"
+            formControlName="sortOrder"
+            (change)="onSortChange()"
+          >
             <option value="asc">По возрастанию</option>
             <option value="desc">По убыванию</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label for="search">Поиск ссылок</label>
-          <input
-            id="search"
-            type="text"
-            formControlName="searchQuery"
-            (input)="loadLinks(true)"
-            placeholder="Поиск по ссылкам"
-          />
-        </div>
-
-        <div class="links-list">
-          <div *ngFor="let link of links">
-            <label>
-              <input
-                type="checkbox"
-                [value]="link.id"
-                (change)="onCheckboxChange(link.id, $event)"
-                [checked]="selectedLinkIds.includes(link.id)"
-              />
-              {{ link.shortKey }} — {{ link.description || link.longLink }}
-            </label>
-          </div>
-
-          <button
-            class="load-more-btn"
-            type="button"
-            (click)="loadLinks()"
-            [disabled]="loading || noMoreLinks"
-          >
-            {{ loading ? 'Загрузка...' : 'Загрузить ещё' }}
-          </button>
-        </div>
+        <!-- Здесь вставляем готовый компонент выбора ссылок -->
+        <app-short-link-selector
+          [selectedLinkIds]="selectedLinkIdsSet"
+          (selectionChange)="onSelectionChange($event)"
+          [searchTerm]="reportForm.get('searchQuery')?.value"
+          [sortBy]="reportForm.get('sortBy')?.value"
+          [sortOrder]="reportForm.get('sortOrder')?.value"
+        ></app-short-link-selector>
 
         <button
           type="submit"
           class="create-btn"
-          [disabled]="reportForm.get('name')?.invalid || selectedLinkIds.length === 0"
+          [disabled]="
+            reportForm.get('name')?.invalid || selectedLinkIds.length === 0
+          "
         >
           Создать
         </button>
@@ -233,19 +223,12 @@ export class CreateReportPageComponent {
     this.router.navigate(['/reports']);
   }
 
-  onCheckboxChange(id: string, event: Event) {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.toggleLinkSelection(id, checked);
+  onSelectionChange(selectedIds: Set<string>) {
+    this.selectedLinkIds = [...selectedIds];
   }
 
-  toggleLinkSelection(id: string, checked: boolean) {
-    if (checked) {
-      if (!this.selectedLinkIds.includes(id)) {
-        this.selectedLinkIds.push(id);
-      }
-    } else {
-      this.selectedLinkIds = this.selectedLinkIds.filter((item) => item !== id);
-    }
+  onSortChange() {
+    this.loadLinks(true);
   }
 
   loadLinks(reset = false) {
@@ -294,23 +277,20 @@ export class CreateReportPageComponent {
   }
 
   onSubmit() {
-    if (this.reportForm.valid && this.selectedLinkIds.length > 0) {
-      const { name } = this.reportForm.value;
-
-      this.http
-        .post<ReportDto>('/api/v1/reports', {
-          name,
-          shortLinkIds: this.selectedLinkIds,
-        })
-        .subscribe({
-          next: (report) => {
-            this.router.navigate(['/reports', report.id]);
-          },
-          error: (err) => {
-            console.error('Ошибка создания отчёта:', err);
-            alert('Не удалось создать отчёт. Попробуйте позже.');
-          },
-        });
+    if (this.reportForm.invalid || this.selectedLinkIds.length === 0) {
+      return;
     }
+    const reportData: CreateReportBodyDto = {
+      name: this.reportForm.value.name,
+      shortLinkIds: Array.from(this.selectedLinkIds),
+    };
+
+    this.http.post('/api/v1/reports', reportData).subscribe(() => {
+      this.router.navigate(['/reports']);
+    });
+  }
+
+  get selectedLinkIdsSet(): Set<string> {
+    return new Set(this.selectedLinkIds);
   }
 }

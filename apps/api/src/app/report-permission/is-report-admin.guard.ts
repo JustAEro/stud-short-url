@@ -1,4 +1,3 @@
-
 import {
   CanActivate,
   ExecutionContext,
@@ -23,7 +22,7 @@ export class IsReportAdminGuard implements CanActivate {
         id: true,
         permissions: {
           where: {
-            user: {id: userId},
+            user: { id: userId },
             role: 'admin',
           },
           select: { id: true },

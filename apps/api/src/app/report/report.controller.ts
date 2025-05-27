@@ -194,7 +194,8 @@ export class ReportController {
   async getStatsForReport(
     @Req() req: any,
     @Param('reportId') reportId: string,
-    @Query('timezoneOffsetInMinutes', ParseIntPipe) timezoneOffsetInMinutes: number, // positive in MSK TZ
+    @Query('timezoneOffsetInMinutes', ParseIntPipe)
+    timezoneOffsetInMinutes: number, // positive in MSK TZ
     @Query('timeScale') timeScale?: 'hour' | 'day' | 'month',
     @Query('from') from?: string,
     @Query('to') to?: string
@@ -226,7 +227,9 @@ export class ReportController {
       // Определяем по periodType из отчёта
       const now = new Date();
       console.log(now.toISOString());
-      const clientNow = new Date(now.getTime() - timezoneOffsetInMinutes * 60 * 1000);
+      const clientNow = new Date(
+        now.getTime() - timezoneOffsetInMinutes * 60 * 1000
+      );
 
       switch (report.periodType) {
         case 'last24h':
@@ -420,7 +423,8 @@ export class ReportController {
     @Req() req: any,
     @Res({ passthrough: true }) res: Response,
     @Param('reportId') reportId: string,
-    @Query('timezoneOffsetInMinutes', ParseIntPipe) timezoneOffsetInMinutes: number,
+    @Query('timezoneOffsetInMinutes', ParseIntPipe)
+    timezoneOffsetInMinutes: number,
     @Query('format') format: 'csv' | 'xlsx' = 'csv',
     @Query('timeScale') timeScale?: 'hour' | 'day' | 'month',
     @Query('from') from?: string,

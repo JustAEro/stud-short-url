@@ -6,4 +6,4 @@ export const longUrlFromShortKey = (shortKey: string): string => {
   }
 
   return `${baseUiUrl}/${shortKey}`;
-}
+};

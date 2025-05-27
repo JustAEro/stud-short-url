@@ -242,7 +242,9 @@ export class ReportPermissionsFormComponent implements OnInit {
 
   removePermission(login: string) {
     this.http
-      .delete(`/api/v1/edit-permission/remove/${this.reportId}/login/${login}`)
+      .delete(
+        `/api/v1/report-permission/remove/${this.reportId}/login/${login}`
+      )
       .subscribe(() => this.loadPermissions());
   }
 }
