@@ -296,7 +296,7 @@ Chart.register(...registerables);
 })
 export class ShortLinkPageComponent implements OnInit {
   shortLinkForm!: FormGroup;
-  timeScale = 'hour';
+  timeScale = 'day';
   chartType: ChartType = 'line';
   chart!: Chart;
   origin = window.location.origin;
