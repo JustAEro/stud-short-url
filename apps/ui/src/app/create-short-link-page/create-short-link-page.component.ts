@@ -150,12 +150,12 @@ export class CreateShortLinkPageComponent {
           description,
           longLink: longUrl,
         }
-  
+
         this.http
           .post<ShortLinkDto>('/api/v1/short-links', requestBody)
           .subscribe({
             next: (response) => {
-              console.log('Short link created:', response);
+              // console.log('Short link created:', response);
               this.router.navigate(['/short-links', response.shortKey]);
             },
             error: (error) => {

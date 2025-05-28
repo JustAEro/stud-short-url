@@ -200,7 +200,7 @@ export class ReportController {
     @Query('from') from?: string,
     @Query('to') to?: string
   ): Promise<FullReportDto> {
-    console.log(timezoneOffsetInMinutes);
+    //console.log(timezoneOffsetInMinutes);
     const user: RequestUserPayloadDto = req.user;
 
     const userId = user.sub;
@@ -226,7 +226,7 @@ export class ReportController {
     } else {
       // Определяем по periodType из отчёта
       const now = new Date();
-      console.log(now.toISOString());
+      //console.log(now.toISOString());
       const clientNow = new Date(
         now.getTime() - timezoneOffsetInMinutes * 60 * 1000
       );

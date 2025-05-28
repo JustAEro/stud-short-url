@@ -30,7 +30,7 @@ export class LoginComponent {
     if (this.loginForm.invalid) return;
 
     const { email, password } = this.loginForm.value;
-    console.log('Logging in user:', { email, password });
+    // console.log('Logging in user:', { email, password });
     // Добавьте вызов сервиса для входа
 
     this.authService.login({ login: email, password });
