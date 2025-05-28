@@ -42,7 +42,7 @@ export class RegisterComponent {
     if (this.registerForm.invalid) return;
 
     const { email, password } = this.registerForm.value;
-    console.log('Registering user:', { email, password });
+    // console.log('Registering user:', { email, password });
     // Добавьте вызов сервиса для регистрации
 
     this.authService.register({login: email, password});

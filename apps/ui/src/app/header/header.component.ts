@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { LucideAngularModule} from 'lucide-angular';
+import { LucideAngularModule } from 'lucide-angular';
 import { AuthService } from '../auth/auth.service';
 import { Observable } from 'rxjs';
 
@@ -11,36 +11,28 @@ import { Observable } from 'rxjs';
   imports: [CommonModule, LucideAngularModule, RouterLink],
   template: `
     <header class="header">
-      <a class="logo" routerLink="">Student Short URL</a>
-      <nav class="nav">
-        <div 
-          class="profile-menu" 
-          (click)="toggleMenu($event)" 
-          (blur)="delayedCloseMenu()" 
-          tabindex="0"
-        >
-          <lucide-icon name="user" class="profile-icon"></lucide-icon>
-          <div 
-            class="menu" 
-            *ngIf="menuOpen" 
-            (click)="onMenuClick($event)"
-          >
-            <p class="user-info">{{ userName }}</p>
-            <!-- <a 
-              class="menu-item" 
-              (click)="navigateToProfile($event)" 
-            >
-              Профиль
-            </a> -->
-            <button 
-              class="menu-item logout-btn" 
-              (click)="logout($event)"
-            >
-              Выйти
-            </button>
-          </div>
+      <div class="left">
+        <a class="logo" routerLink="/">Student Short URL</a>
+        <nav class="nav">
+          <a class="nav-link" routerLink="/">Короткие ссылки</a>
+          <a class="nav-link" routerLink="/reports">Отчеты</a>
+        </nav>
+      </div>
+
+      <div
+        class="profile-menu"
+        (click)="toggleMenu($event)"
+        (blur)="delayedCloseMenu()"
+        tabindex="0"
+      >
+        <lucide-icon name="user" class="profile-icon"></lucide-icon>
+        <div class="menu" *ngIf="menuOpen" (click)="onMenuClick($event)">
+          <p class="user-info">{{ userName }}</p>
+          <button class="menu-item logout-btn" (click)="logout($event)">
+            Выйти
+          </button>
         </div>
-      </nav>
+      </div>
     </header>
   `,
   styles: [
@@ -55,11 +47,17 @@ import { Observable } from 'rxjs';
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
+      .left {
+        display: flex;
+        align-items: center;
+      }
+
       .logo {
         font-size: 1.5rem;
         font-weight: bold;
         color: #007bff;
         text-decoration: none;
+        margin-right: 2rem;
       }
 
       .logo:hover {
@@ -145,12 +143,23 @@ import { Observable } from 'rxjs';
         font-weight: bold;
         color: #555;
       }
+
+      .nav-link {
+        margin-right: 1rem;
+        color: #007bff;
+        text-decoration: none;
+        font-weight: 500;
+      }
+
+      .nav-link:hover {
+        text-decoration: underline;
+      }
     `,
   ],
 })
 export class HeaderComponent implements OnInit {
   menuOpen = false;
-  userName$: Observable<string | null>;  // Реальные данные пользователя можно получить из сервиса
+  userName$: Observable<string | null>; // Реальные данные пользователя можно получить из сервиса
   userName: string | null = '';
 
   constructor(private router: Router, private authService: AuthService) {
@@ -160,7 +169,7 @@ export class HeaderComponent implements OnInit {
   ngOnInit() {
     this.authService.getUserLogin$().subscribe((login) => {
       this.userName = login;
-    })
+    });
   }
 
   toggleMenu(event: MouseEvent) {
@@ -193,7 +202,7 @@ export class HeaderComponent implements OnInit {
     event.stopPropagation();
     //this.closeMenu(); // Закрываем меню
     // Добавьте реальную логику выхода
-    
+
     this.authService.logout();
   }
 }

@@ -10,10 +10,10 @@ import {
   HTTP_INTERCEPTORS,
   provideHttpClient,
   withFetch,
-  withInterceptors,
   withInterceptorsFromDi,
 } from '@angular/common/http';
 import {
+  ArrowDownToLine,
   ClipboardCopy,
   LucideAngularModule,
   Plus,
@@ -42,7 +42,14 @@ export const appConfig: ApplicationConfig = {
       multi: true,
     },
     importProvidersFrom(
-      LucideAngularModule.pick({ User, Plus, ClipboardCopy, Trash, QrCode })
+      LucideAngularModule.pick({
+        User,
+        Plus,
+        ClipboardCopy,
+        Trash,
+        QrCode,
+        ArrowDownToLine,
+      })
     ),
     importProvidersFrom(MatSnackBarModule),
   ],

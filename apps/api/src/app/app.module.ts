@@ -10,6 +10,8 @@ import { ShortLinkModule } from './short-link/short-link.module';
 import { LinkStatModule } from './link-stat/link-stat.module';
 import { AuthModule } from './auth/auth.module';
 import { EditPermissionModule } from './permission/edit-permission.module';
+import { ReportModule } from './report/report.module';
+import { ReportPermissionModule } from './report-permission/report-permission.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { EditPermissionModule } from './permission/edit-permission.module';
     LinkStatModule,
     AuthModule,
     EditPermissionModule,
+    ReportModule,
+    ReportPermissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

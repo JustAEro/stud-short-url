@@ -1,63 +1,119 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
-import type { RegisterClickParams } from "./types";
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import type { RegisterClickParams } from './types';
 
 @Injectable()
 export class LinkStatService {
-    constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
-    async registerClick({shortKey, ...statData}: RegisterClickParams) {
-        const shortLink = await this.prismaService.shortLink.findUnique({
-            where: {shortKey}
-        });
+  async registerClick({ shortKey, ...statData }: RegisterClickParams) {
+    const shortLink = await this.prismaService.shortLink.findUnique({
+      where: { shortKey },
+    });
 
-        if (!shortLink) {
-            throw new NotFoundException('Short link not found');
-        }
-
-        await this.prismaService.linkStat.create({
-            data: {
-                shortLinkId: shortLink.id,
-                ...statData,
-            }
-        });
+    if (!shortLink) {
+      throw new NotFoundException('Short link not found');
     }
 
-    async getTotalClicks(shortKey: string): Promise<number> {
-        const totalClicks = await this.prismaService.linkStat.count({
-            where: {shortLink: {shortKey}}
-        });
+    await this.prismaService.linkStat.create({
+      data: {
+        shortLinkId: shortLink.id,
+        ...statData,
+      },
+    });
+  }
 
-        return totalClicks;
-    }
+  async getTotalClicks({
+    shortKey,
+    from,
+    to,
+  }: {
+    shortKey: string;
+    from?: Date;
+    to?: Date;
+  }): Promise<number> {
+    const totalClicks = await this.prismaService.linkStat.count({
+      where: {
+        shortLink: { shortKey },
+        clickedAt: {
+          ...(from && { gte: from }),
+          ...(to && { lte: to }),
+        },
+      },
+    });
 
-    async getClicksByDeviceType(shortKey: string) {
-        const clicksByDevice = await this.prismaService.linkStat.groupBy({
-            by: ['deviceType'],
-            where: {shortLink: {shortKey}},
-            _count: {_all: true}
-        });
+    return totalClicks;
+  }
 
-        return clicksByDevice;
-    }
+  async getClicksByDeviceType({
+    shortKey,
+    from,
+    to,
+  }: {
+    shortKey: string;
+    from?: Date;
+    to?: Date;
+  }) {
+    const clicksByDevice = await this.prismaService.linkStat.groupBy({
+      by: ['deviceType'],
+      where: {
+        shortLink: { shortKey },
+        clickedAt: {
+          ...(from && { gte: from }),
+          ...(to && { lte: to }),
+        },
+      },
+      _count: { _all: true },
+    });
 
-    async getClicksByBrowser(shortKey: string) {
-        const clicksByBrowser = await this.prismaService.linkStat.groupBy({
-            by: ['browser'],
-            where: {shortLink: {shortKey}},
-            _count: {_all: true}
-        });
+    return clicksByDevice;
+  }
 
-        return clicksByBrowser;
-    }
+  async getClicksByBrowser({
+    shortKey,
+    from,
+    to,
+  }: {
+    shortKey: string;
+    from?: Date;
+    to?: Date;
+  }) {
+    const clicksByBrowser = await this.prismaService.linkStat.groupBy({
+      by: ['browser'],
+      where: {
+        shortLink: { shortKey },
+        clickedAt: {
+          ...(from && { gte: from }),
+          ...(to && { lte: to }),
+        },
+      },
+      _count: { _all: true },
+    });
 
-    async getClicksByReferrer(shortKey: string) {
-        const clicksByReferrer = await this.prismaService.linkStat.groupBy({
-            by: ['referrer'],
-            where: {shortLink: {shortKey}},
-            _count: {_all: true}
-        });
+    return clicksByBrowser;
+  }
 
-        return clicksByReferrer;
-    }
+  async getClicksByReferrer({
+    shortKey,
+    from,
+    to,
+  }: {
+    shortKey: string;
+    from?: Date;
+    to?: Date;
+  }) {
+    const clicksByReferrer = await this.prismaService.linkStat.groupBy({
+      by: ['referrer'],
+      where: {
+        shortLink: { shortKey },
+        clickedAt: {
+          ...(from && { gte: from }),
+          ...(to && { lte: to }),
+        },
+      },
+      _count: { _all: true },
+    });
+
+    return clicksByReferrer;
+  }
 }
