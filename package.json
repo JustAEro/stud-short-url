@@ -4,7 +4,9 @@
   "license": "MIT",
   "scripts": {
     "start:api": "nx serve api",
-    "start:ui": "nx serve ui"
+    "start:ui": "nx serve ui",
+    "docker:build:ui": "docker build -t nx-angular-ui -f apps/ui/Dockerfile .",
+    "docker:run:ui": "docker run -p 8080:80 nx-angular-ui"
   },
   "private": true,
   "dependencies": {
