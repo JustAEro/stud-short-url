@@ -5,7 +5,10 @@
   "scripts": {
     "start:api": "nx serve api",
     "start:ui": "nx serve ui",
+    "compose:up": "docker compose --env-file .env.docker up",
+    "compose:up:d": "docker compose --env-file .env.docker up -d",
     "compose:up:build": "docker compose --env-file .env.docker up --build",
+    "compose:down": "docker-compose down",
     "compose:down:volumes": "docker-compose down -v"
   },
   "private": true,
