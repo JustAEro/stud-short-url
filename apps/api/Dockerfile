@@ -1,33 +1,26 @@
-# Используем тот же базовый builder для node_modules и исходников
-FROM node:22 AS base-builder
-
+FROM node:22-alpine AS deps
 WORKDIR /app
-
+RUN apk add --no-cache openssl
 COPY package*.json ./
-RUN npm cache clean --force && npm ci
+RUN npm ci --only=production
 
+FROM node:22-alpine AS build
+WORKDIR /app
+RUN apk add --no-cache openssl
+COPY package*.json ./
+RUN npm ci
 COPY . .
+RUN npx nx build api && npx prisma generate
 
-# Билдим api
-FROM node:22 AS api-builder
-
+FROM node:22-alpine AS prod
 WORKDIR /app
-
-COPY --from=base-builder /app/node_modules ./node_modules
-COPY --from=base-builder /app .
-
-RUN npx nx build api
+RUN apk add --no-cache openssl curl
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/prisma ./prisma
+COPY --from=build /app/package.json ./package.json
+# Важно: генерируем клиент Prisma уже в финальном образе
 RUN npx prisma generate
-
-# Финальный образ для запуска api
-FROM node:22
-
-WORKDIR /app
-
-COPY --from=api-builder /app/node_modules ./node_modules
-COPY --from=api-builder /app/dist ./dist
-COPY --from=api-builder /app/prisma ./prisma
-COPY --from=api-builder /app/package.json ./package.json
 
 EXPOSE 4000
 

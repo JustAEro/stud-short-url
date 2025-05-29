@@ -1,5 +1,5 @@
 # Базовый этап: установка зависимостей и копирование исходников
-FROM node:22 AS base-builder
+FROM node:22-alpine AS base-builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN npm cache clean --force && npm ci
 COPY . .
 
 # UI билд (используем node_modules из base-builder)
-FROM node:22 AS ui-builder
+FROM node:22-alpine AS ui-builder
 
 WORKDIR /app
 
