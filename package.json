@@ -9,8 +9,8 @@
     "compose:up:d": "docker compose --env-file .env.docker up -d",
     "compose:up:build": "docker compose --env-file .env.docker up --build",
     "compose:up:d:build": "docker compose --env-file .env.docker up --build -d",
-    "compose:down": "docker-compose down",
-    "compose:down:volumes": "docker-compose down -v"
+    "compose:down": "docker compose down",
+    "compose:down:volumes": "docker compose down -v"
   },
   "private": true,
   "dependencies": {
@@ -31,6 +31,7 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@prisma/client": "^5.20.0",
+    "prisma": "^5.20.0",
     "bcryptjs": "^2.4.3",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -97,7 +98,6 @@
     "ngxtension": "^4.0.0",
     "nx": "20.0.0",
     "prettier": "^2.6.2",
-    "prisma": "^5.20.0",
     "ts-jest": "^29.1.0",
     "ts-node": "10.9.1",
     "typescript": "~5.5.2",
