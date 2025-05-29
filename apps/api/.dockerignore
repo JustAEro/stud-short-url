@@ -11,3 +11,7 @@ Dockerfile
 npm-debug.log*
 yarn-error.log*
 coverage
+*.ts
+*.md
+apps/**/__tests__/
+apps/**/tsconfig*.json
