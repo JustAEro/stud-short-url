@@ -11,10 +11,14 @@ export class AppController {
   @UseGuards(JwtAuthGuard)
   @Get()
   getData(@Request() req: any) {
-
     return {
       data: this.appService.getData(),
       user: req.user as RequestUserPayloadDto,
-    }
+    };
+  }
+
+  @Get('health')
+  healthCheck() {
+    return { status: 'ok' };
   }
 }
