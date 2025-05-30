@@ -86,8 +86,8 @@ services:
       - NGINX_SSL_CERT_KEY=${NGINX_SSL_CERT_KEY}
     volumes:
       - ./nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
-      - /etc/letsencrypt/live/stdurl.ru/fullchain.pem:/etc/nginx/certs/localhost.pem:ro
-      - /etc/letsencrypt/live/stdurl.ru/privkey.pem:/etc/nginx/certs/localhost-key.pem:ro
+      - ./certs/localhost.pem:/etc/nginx/certs/localhost.pem:ro
+      - ./certs/localhost-key.pem:/etc/nginx/certs/localhost-key.pem:ro
       - ./dist/apps/ui/browser:/usr/share/nginx/html:ro
     depends_on:
       - api
