@@ -3,6 +3,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  ParseIntPipe,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -26,7 +27,9 @@ export class LinkStatController {
   @Get(':shortKey/stats')
   async getStats(
     @Param('shortKey') shortKey: string,
-    @Query('timeScale') timeScale: 'hour' | 'day' | 'month'
+    @Query('timeScale') timeScale: 'hour' | 'day' | 'month',
+    @Query('timezoneOffsetInMinutes', ParseIntPipe)
+    timezoneOffsetInMinutes: number // negative in MSK TZ (should be -180)
   ): Promise<LinkStatClicksDto> {
     const shortLink = await this.prisma.shortLink.findUnique({
       where: { shortKey },
@@ -37,6 +40,14 @@ export class LinkStatController {
         `Short link with key '${shortKey}' not found`
       );
     }
+
+    const now = new Date();
+
+    const clientNow = new Date(
+      now.getTime() - timezoneOffsetInMinutes * 60 * 1000
+    );
+
+    const maxDateSql = Prisma.sql`${clientNow}`;
 
     // Определяем параметры для группировки
     const timeScaleQuery = {
@@ -63,7 +74,7 @@ export class LinkStatController {
     WITH time_series AS (
       SELECT generate_series(
         (SELECT MIN(DATE_TRUNC(${timeScaleQuery}, "clickedAt")) FROM "LinkStat" WHERE "shortLinkId" = ${shortLink.id}),
-        NOW(),
+        ${maxDateSql},
         ${interval}
       ) AS period
     )

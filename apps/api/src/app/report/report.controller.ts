@@ -30,7 +30,7 @@ import {
   RequestUserPayloadDto,
   UpdateReportBodyDto,
 } from '@stud-short-url/common';
-import { parse, isValid } from 'date-fns';
+import { parse, isValid, addMinutes, format } from 'date-fns';
 import { HasReportViewPermissionGuard } from '../report-permission/has-report-view-permission.guard';
 import { HasReportEditPermissionGuard } from '../report-permission/has-report-edit-permission.guard';
 import { IsReportAdminGuard } from '../report-permission/is-report-admin.guard';
@@ -38,6 +38,7 @@ import { Response } from 'express';
 import { createObjectCsvStringifier } from 'csv-writer';
 import * as ExcelJS from 'exceljs';
 import { longUrlFromShortKey } from '../shared/long-url-from-short-key';
+import { inspect } from 'util';
 
 @UseGuards(JwtAuthGuard)
 @Controller('reports')
@@ -226,10 +227,11 @@ export class ReportController {
     } else {
       // Определяем по periodType из отчёта
       const now = new Date();
-      //console.log(now.toISOString());
+      console.log('now', now.toISOString());
       const clientNow = new Date(
         now.getTime() - timezoneOffsetInMinutes * 60 * 1000
       );
+      console.log('clientNow', clientNow.toISOString());
 
       switch (report.periodType) {
         case 'last24h':
@@ -289,12 +291,15 @@ export class ReportController {
     }[parsedTimeScale];
 
     const parseLabel = (label: string): Date => {
+      console.log(label);
       const parsed = parse(label, labelFormat, new Date());
       if (!isValid(parsed)) {
         throw new Error(`Invalid label format: ${label}`);
       }
       return parsed;
     };
+
+    const isRelative = report.periodType === 'custom' && !!parsedFrom;
 
     const linksStatsRaw = await Promise.all(
       report.shortLinks.map(async ({ shortLink }) => {
@@ -312,7 +317,7 @@ export class ReportController {
           SELECT generate_series(${minDateSql}, ${maxDateSql}, ${interval}) AS period
         )
         SELECT
-          TO_CHAR(t.period, ${format}) AS period,
+          t.period AT TIME ZONE 'UTC' AS period,
           COALESCE(COUNT(l."id")::int, 0) AS clicks
         FROM time_series t
         LEFT JOIN "LinkStat" l
@@ -370,8 +375,18 @@ export class ReportController {
 
     const fullLabelSet = new Set<string>();
     linksStatsRaw.forEach((linkStat) => {
-      linkStat.rawStats.forEach((s) => fullLabelSet.add(s.period));
+      linkStat.rawStats.forEach((s) => {
+        const shifted = this.shiftLabelTime(
+          s.period,
+          labelFormat,
+          timezoneOffsetInMinutes,
+          isRelative
+        );
+        fullLabelSet.add(shifted);
+      });
     });
+
+    //console.log('Full label set:', inspect(fullLabelSet, false, Infinity, true));
 
     const allLabels = Array.from(fullLabelSet)
       .map((label) => ({ label, date: parseLabel(label) }))
@@ -380,7 +395,15 @@ export class ReportController {
 
     const linksStats = linksStatsRaw.map((linkStat) => {
       const statMap = new Map(
-        linkStat.rawStats.map((s) => [s.period, s.clicks])
+        linkStat.rawStats.map((s) => [
+          this.shiftLabelTime(
+            s.period,
+            labelFormat,
+            timezoneOffsetInMinutes,
+            isRelative
+          ),
+          s.clicks,
+        ])
       );
       const values = allLabels.map((label) => statMap.get(label) ?? 0);
 
@@ -588,5 +611,22 @@ export class ReportController {
       await workbook.xlsx.write(res);
       res.end();
     }
+  }
+
+  shiftLabelTime(
+    isoDate: string,
+    labelFormat: string,
+    timezoneOffsetInMinutes: number,
+    isRelative: boolean
+  ): string {
+    const parsed = new Date(isoDate);
+    if (!isValid(parsed)) {
+      throw new Error(`Invalid ISO date: ${isoDate}`);
+    }
+
+    const shifted = isRelative
+      ? addMinutes(parsed, -timezoneOffsetInMinutes)
+      : parsed;
+    return format(shifted, labelFormat);
   }
 }

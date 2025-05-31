@@ -6,7 +6,7 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
-import {common} from '@stud-short-url/common';
+import { common } from '@stud-short-url/common';
 
 import { AppModule } from './app/app.module';
 
@@ -16,16 +16,18 @@ dotenv.config();
 // console.log('Loaded JWT_SECRET:', process.env.JWT_SECRET);
 
 async function bootstrap() {
+  process.env.TZ = 'UTC';
+
   const app = await NestFactory.create(AppModule);
 
-  Logger.log(common())
+  Logger.log(common());
 
   const globalPrefix = 'api/v1';
 
   app.setGlobalPrefix(globalPrefix);
 
   const port = process.env.PORT || 4000;
-  
+
   await app.listen(port);
 
   Logger.log(

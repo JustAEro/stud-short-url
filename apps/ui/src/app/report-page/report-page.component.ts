@@ -392,7 +392,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
   private loadFullReport(id: string) {
     this.http
       .get<FullReportDto>(`/api/v1/reports/${id}/stats`, {
-        params: { timezoneOffsetInMinutes: 0 },
+        params: { timezoneOffsetInMinutes: new Date().getTimezoneOffset() },
       })
       .subscribe({
         next: (fullReport) => {
@@ -506,7 +506,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
 
     this.http
       .get<FullReportDto>(`/api/v1/reports/${reportId}/stats`, {
-        params: { timezoneOffsetInMinutes: 0 },
+        params: { timezoneOffsetInMinutes: new Date().getTimezoneOffset() },
       })
       .subscribe((data) => {
         //this.fullReportDto = data;
@@ -641,7 +641,7 @@ export class ReportPageComponent implements OnInit, OnDestroy {
 
     this.http
       .get(
-        `/api/v1/reports/${reportId}/export?format=${format}&timezoneOffsetInMinutes=${0}`,
+        `/api/v1/reports/${reportId}/export?format=${format}&timezoneOffsetInMinutes=${new Date().getTimezoneOffset()}`,
         {
           responseType: 'blob',
           observe: 'response',

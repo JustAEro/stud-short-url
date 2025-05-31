@@ -23,7 +23,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { DeleteConfirmationDialogComponent } from './delete-confirmation-dialog.component';
 import { PermissionsFormComponent } from './permissions-form.component';
 import { QrDialogComponent } from '../qr-dialog/qr-dialog.component';
-import { LinkStatsSummaryComponent } from "../report-page/link-stats-summary.component";
+import { LinkStatsSummaryComponent } from '../report-page/link-stats-summary.component';
 
 Chart.register(...registerables);
 
@@ -37,8 +37,8 @@ Chart.register(...registerables);
     HeaderComponent,
     LucideAngularModule,
     PermissionsFormComponent,
-    LinkStatsSummaryComponent
-],
+    LinkStatsSummaryComponent,
+  ],
   template: `
     <app-header></app-header>
     <div class="container">
@@ -169,9 +169,9 @@ Chart.register(...registerables);
         <canvas id="statsChart"></canvas>
 
         <app-link-stats-summary
-            [stats]="stats"
-            title=""
-          ></app-link-stats-summary>
+          [stats]="stats"
+          title=""
+        ></app-link-stats-summary>
       </div>
 
       <div *ngIf="role === 'admin'">
@@ -357,9 +357,7 @@ export class ShortLinkPageComponent implements OnInit {
       });
 
     this.http
-      .get<LinkDetailedStatsDto>(
-        `/api/v1/link-stat/${shortLinkId}/details`
-      )
+      .get<LinkDetailedStatsDto>(`/api/v1/link-stat/${shortLinkId}/details`)
       .subscribe((stats) => {
         this.stats = stats;
       });
@@ -426,7 +424,10 @@ export class ShortLinkPageComponent implements OnInit {
 
     this.http
       .get(`/api/v1/link-stat/${shortLinkId}/stats`, {
-        params: { timeScale: this.timeScale },
+        params: {
+          timeScale: this.timeScale,
+          timezoneOffsetInMinutes: new Date().getTimezoneOffset(),
+        },
       })
       .subscribe((data: any) => {
         this.updateChart(data);
