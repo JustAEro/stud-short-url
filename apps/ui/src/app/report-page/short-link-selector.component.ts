@@ -15,67 +15,100 @@ import { FormsModule } from '@angular/forms';
 import { debounceTime, Subject } from 'rxjs';
 import { ShortLinkDto } from '@stud-short-url/common';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatCardModule } from '@angular/material/card';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-short-link-selector',
   standalone: true,
-  imports: [CommonModule, FormsModule, MatCheckboxModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    MatCheckboxModule,
+    MatCardModule,
+    MatInputModule,
+    MatSelectModule,
+    MatIconModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
+  ],
   template: `
     <div class="selector-container">
-      <div class="top-bar">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Поиск (введите часть описания или ключа)</mat-label>
         <input
-          class="input"
+          matInput
           #searchInput
           [(ngModel)]="searchQuery"
           (input)="onSearchInputChange()"
-          placeholder="Поиск по описанию или ключу..."
         />
+      </mat-form-field>
 
-        <select
-          class="select"
-          [(ngModel)]="localSortBy"
-          (change)="onSortByChange()"
-        >
-          <option value="updatedAt">По дате обновления</option>
-          <option value="createdAt">По дате создания</option>
-          <option value="description">По описанию</option>
-        </select>
-
-        <select
-          class="select"
-          [(ngModel)]="localSortDirection"
-          (change)="onSortDirectionChange()"
-        >
-          <option value="asc">Возрастание</option>
-          <option value="desc">Убывание</option>
-        </select>
+      <div class="sort-controls">
+        <span class="sort-label">Сортировка:</span>
+        <mat-form-field appearance="outline" class="sort-field">
+          <mat-select
+            [(ngModel)]="localSortBy"
+            (selectionChange)="onSortByChange()"
+          >
+            <mat-option value="updatedAt">Дата изменения</mat-option>
+            <mat-option value="createdAt">Дата создания</mat-option>
+            <mat-option value="description">Описание</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-icon-button (click)="toggleSortDirection()">
+          <mat-icon>{{
+            localSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'
+          }}</mat-icon>
+        </button>
       </div>
 
       <div *ngIf="shortLinks.length === 0 && !loading" class="empty">
         Ничего не найдено
       </div>
-      <div *ngIf="loading" class="loading">Загрузка...</div>
 
-      <ul class="link-list">
-        <li *ngFor="let link of shortLinks">
+      <div *ngIf="loading && shortLinks.length === 0" class="loading-spinner">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
+
+      <div class="link-list-container">
+        <mat-card *ngFor="let link of shortLinks" class="link-card">
           <mat-checkbox
             [checked]="selectedLinkIds.has(link.id)"
             (change)="toggleSelection(link.id)"
+            color="primary"
           >
-            {{ link.description || link.shortKey }}
+            <div class="link-content">
+              <div class="link-title">
+                {{ link.description || link.shortKey }}
+              </div>
+              <div class="link-url">{{ getShortUrl(link.shortKey) }}</div>
+            </div>
           </mat-checkbox>
-        </li>
-      </ul>
+        </mat-card>
+      </div>
+
+      <div *ngIf="loading && shortLinks.length > 0" class="loading-spinner">
+        <mat-spinner diameter="40"></mat-spinner>
+      </div>
 
       <div class="pagination" *ngIf="totalPages > 1">
-        <button class="btn" (click)="prevPage()" [disabled]="page === 1">
+        <button mat-button (click)="prevPage()" [disabled]="page === 1">
           Назад
         </button>
-        <select class="select" [(ngModel)]="page" (change)="loadShortLinks()">
-          <option *ngFor="let p of totalPagesArray" [value]="p">{{ p }}</option>
-        </select>
+        <mat-form-field appearance="outline" class="page-select">
+          <mat-select [(ngModel)]="page" (selectionChange)="loadShortLinks()">
+            <mat-option *ngFor="let p of totalPagesArray" [value]="p">{{
+              p
+            }}</mat-option>
+          </mat-select>
+        </mat-form-field>
         <button
-          class="btn"
+          mat-button
           (click)="nextPage()"
           [disabled]="page === totalPages"
         >
@@ -89,78 +122,94 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
       .selector-container {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 16px;
       }
 
-      .top-bar {
+      .search-field {
+        width: 100%;
+      }
+
+      .sort-controls {
         display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
+        align-items: center;
+        gap: 8px;
       }
 
-      .input {
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #ccc;
-        border-radius: 0.5rem;
+      .sort-label {
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.6);
+      }
+
+      .sort-field {
         flex-grow: 1;
-        min-width: 200px;
       }
 
-      .select {
-        padding: 0.5rem;
-        border: 1px solid #ccc;
-        border-radius: 0.5rem;
-      }
-
-      .link-list {
-        list-style: none;
-        padding: 0;
+      .link-list-container {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 8px;
+      }
+
+      .link-card {
+        padding: 12px;
+        background-color: #ffffff; /* Светло-серый фон карточки */
+        border-radius: 8px;
+        box-shadow: none;
+        border: 1px solid #e0e0e0; /* Легкая граница */
+      }
+
+      .link-content {
+        margin-left: 8px;
+      }
+
+      .link-title {
+        font-weight: 500;
+        margin-bottom: 4px;
+        color: #333; /* Темный цвет текста для контраста */
+      }
+
+      .link-url {
+        font-size: 12px;
+        color: #666;
+      }
+
+      .empty {
+        text-align: center;
+        color: #9ca3af;
+        padding: 16px;
+      }
+
+      .loading-spinner {
+        display: flex;
+        justify-content: center;
+        padding: 16px;
       }
 
       .pagination {
         display: flex;
+        justify-content: center;
         align-items: center;
-        gap: 0.5rem;
-        margin-top: 1rem;
+        gap: 8px;
+        margin-top: 16px;
       }
 
-      .btn {
-        background-color: #e5e7eb;
-        border: none;
-        border-radius: 0.5rem;
-        padding: 0.5rem 1rem;
-        font-size: 1rem;
-        cursor: pointer;
+      .page-select {
+        width: 80px;
       }
 
-      .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-
-      .loading {
-        font-style: italic;
-        color: #6b7280;
-      }
-
-      .empty {
-        color: #9ca3af;
+      /* Стили для чекбокса */
+      ::ng-deep .mat-checkbox-checked.mat-primary .mat-checkbox-background {
+        background-color: #3f51b5; /* Цвет выбранного чекбокса */
       }
     `,
   ],
 })
 export class ShortLinkSelectorComponent implements OnInit, OnChanges {
   @Input() selectedLinkIds = new Set<string>();
-
-  // Входные параметры
   @Input() searchTerm = '';
   @Input() sortBy = 'updatedAt';
   @Input() sortOrder: 'asc' | 'desc' = 'desc';
 
-  // Выходные события, чтобы родитель знал об изменениях
   @Output() selectionChange = new EventEmitter<Set<string>>();
   @Output() searchTermChange = new EventEmitter<string>();
   @Output() sortByChange = new EventEmitter<string>();
@@ -170,12 +219,9 @@ export class ShortLinkSelectorComponent implements OnInit, OnChanges {
 
   shortLinks: ShortLinkDto[] = [];
   loading = false;
-
-  // Локальные переменные, связанные с UI и синхронизированные с @Input
   searchQuery = '';
   localSortBy = 'updatedAt';
   localSortDirection: 'asc' | 'desc' = 'desc';
-
   searchSubject = new Subject<string>();
   page = 1;
   limit = 10;
@@ -184,25 +230,17 @@ export class ShortLinkSelectorComponent implements OnInit, OnChanges {
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
-    // При вводе в поле поиска с дебаунсом
-    this.searchSubject.pipe(debounceTime(400)).subscribe((query) => {
-      // Обновляем page
+    this.searchSubject.pipe(debounceTime(500)).subscribe((query) => {
       this.page = 1;
-      // Эмитим событие наружу
       this.searchTermChange.emit(query);
-      // Загружаем данные
       this.loadShortLinks();
     });
 
-    // Инициализируем локальные значения из входных
     this.syncInputsToLocals();
-
-    // Первоначальная загрузка
     this.loadShortLinks();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    // Если входные параметры изменились — синхронизируем локальные значения и загружаем данные
     if (changes['searchTerm'] || changes['sortBy'] || changes['sortOrder']) {
       this.syncInputsToLocals();
       this.page = 1;
@@ -216,6 +254,10 @@ export class ShortLinkSelectorComponent implements OnInit, OnChanges {
     this.localSortDirection = this.sortOrder ?? 'desc';
   }
 
+  getShortUrl(shortKey: string): string {
+    return `${window.location.origin}/${shortKey}`;
+  }
+
   onSearchInputChange() {
     this.searchSubject.next(this.searchQuery);
   }
@@ -226,7 +268,9 @@ export class ShortLinkSelectorComponent implements OnInit, OnChanges {
     this.loadShortLinks();
   }
 
-  onSortDirectionChange() {
+  toggleSortDirection() {
+    this.localSortDirection =
+      this.localSortDirection === 'asc' ? 'desc' : 'asc';
     this.page = 1;
     this.sortOrderChange.emit(this.localSortDirection);
     this.loadShortLinks();

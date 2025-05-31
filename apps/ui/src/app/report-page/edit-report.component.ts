@@ -12,6 +12,9 @@ import {
   UpdateReportBodyDto,
 } from '@stud-short-url/common';
 import { ShortLinkSelectorComponent } from './short-link-selector.component';
+import { MatButtonModule } from '@angular/material/button';
+import { MatInputModule } from '@angular/material/input';
+import { MatCardModule } from '@angular/material/card';
 
 interface EditReportForm {
   name: FormControl<string>;
@@ -21,131 +24,139 @@ interface EditReportForm {
 @Component({
   standalone: true,
   selector: 'app-edit-report',
-  imports: [CommonModule, ReactiveFormsModule, ShortLinkSelectorComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    ShortLinkSelectorComponent,
+    MatButtonModule,
+    MatInputModule,
+    MatCardModule,
+  ],
   template: `
     <div class="container">
-      <form
-        *ngIf="canEdit && form"
-        [formGroup]="form"
-        (ngSubmit)="onSubmit()"
-        class="form"
-      >
-        <div class="form-group">
-          <label for="report-name">Название отчёта</label>
-          <input
-            id="report-name"
-            type="text"
-            formControlName="name"
-            placeholder="Введите название отчёта"
-          />
-          <div
-            *ngIf="form.controls.name.invalid && form.controls.name.touched"
-            class="error"
-          >
-            Название обязательно
+      <mat-card class="card">
+        <form
+          *ngIf="canEdit && form"
+          [formGroup]="form"
+          (ngSubmit)="onSubmit()"
+          class="form"
+        >
+          <div class="form-group">
+            <mat-form-field appearance="outline" class="full-width">
+              <mat-label>Название отчета</mat-label>
+              <input
+                matInput
+                id="report-name"
+                type="text"
+                formControlName="name"
+                placeholder="Введите название отчёта"
+              />
+            </mat-form-field>
+            <div
+              *ngIf="form.controls.name.invalid && form.controls.name.touched"
+              class="error"
+            >
+              Название обязательно
+            </div>
           </div>
-        </div>
 
-        <div class="form-group">
-          <label>Ссылки в отчёте</label>
-          <app-short-link-selector
-            [selectedLinkIds]="selectedLinkIds"
-            (selectionChange)="onLinkSelectionChanged($event)"
-          ></app-short-link-selector>
-          <div
-            *ngIf="
-              form.controls.shortLinkIds.invalid &&
-              form.controls.shortLinkIds.touched
-            "
-            class="error"
-          >
-            Необходимо выбрать хотя бы одну ссылку
+          <div class="form-group">
+            <label>Ссылки в отчете</label>
+
+            <app-short-link-selector
+              [selectedLinkIds]="selectedLinkIds"
+              (selectionChange)="onLinkSelectionChanged($event)"
+            ></app-short-link-selector>
+
+            <div
+              *ngIf="
+                form.controls.shortLinkIds.invalid &&
+                form.controls.shortLinkIds.touched
+              "
+              class="error"
+            >
+              Необходимо выбрать хотя бы одну ссылку
+            </div>
           </div>
-        </div>
 
-        <div class="button-row">
-          <button
-            type="submit"
-            class="btn primary"
-            [disabled]="loading || form.invalid"
-          >
-            Сохранить
-          </button>
-          <button
-            *ngIf="isAdmin"
-            type="button"
-            class="btn danger"
-            (click)="onDelete()"
-          >
-            Удалить отчёт
-          </button>
-        </div>
-      </form>
+          <div class="button-row">
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              [disabled]="loading || form.invalid"
+            >
+              Обновить
+            </button>
+            <button
+              *ngIf="isAdmin"
+              mat-raised-button
+              color="warn"
+              type="button"
+              (click)="onDelete()"
+            >
+              Удалить
+            </button>
+          </div>
+        </form>
+      </mat-card>
     </div>
   `,
   styles: [
     `
       .container {
-        padding: 1.5rem;
+        display: flex;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      .card {
+        width: 100%;
         max-width: 800px;
-        margin: 0 auto;
+        padding: 24px;
+        background: transparent;
+        box-shadow: none;
       }
 
       .form {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 24px;
       }
 
       .form-group {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: 8px;
       }
 
       .form-group label {
-        font-weight: 600;
+        font-weight: 500;
+        font-size: 14px;
+        color: rgba(0, 0, 0, 0.6);
       }
 
-      .form-group input {
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #ccc;
-        border-radius: 0.5rem;
-        font-size: 1rem;
+      .full-width {
+        width: 100%;
       }
 
       .error {
-        color: #dc2626;
-        font-size: 0.875rem;
+        color: #f44336;
+        font-size: 12px;
+        margin-top: -16px;
       }
 
       .button-row {
         display: flex;
-        gap: 1rem;
+        gap: 100px;
+        justify-content: center;
+        margin-top: 16px;
       }
 
-      .btn {
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-weight: 500;
-        cursor: pointer;
-        border: none;
-        font-size: 1rem;
-      }
-
-      .btn.primary {
-        background-color: #3b82f6;
-        color: white;
-      }
-
-      .btn.primary:disabled {
-        background-color: #93c5fd;
-        cursor: not-allowed;
-      }
-
-      .btn.danger {
-        background-color: #ef4444;
-        color: white;
+      .link-selector-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 8px;
       }
     `,
   ],

@@ -248,6 +248,7 @@ export class EditPermissionService {
     const permissions = await this.prisma.editPermission.findMany({
       where: { shortLinkId, user: {id: {not: userId}} },
       include: { user: true },
+      orderBy: { user: { login: 'asc' } },
     });
 
     return permissions.map((perm) => ({

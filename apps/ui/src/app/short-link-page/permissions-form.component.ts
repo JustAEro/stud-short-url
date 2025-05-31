@@ -1,5 +1,12 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { MatSelectChange } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import {
   FormBuilder,
   FormGroup,
@@ -10,52 +17,143 @@ import { CommonModule } from '@angular/common';
 import { catchError, of, throwError } from 'rxjs';
 
 @Component({
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [
+    ReactiveFormsModule,
+    CommonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSelectModule,
+    MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
+  ],
+
   standalone: true,
   selector: 'app-permissions-form',
   template: `
     <div class="permissions-container">
-      <h3>Пользователи с правами доступа</h3>
-      <ul>
-        <li *ngFor="let user of users">
-          {{ user.login }}
-          <select
-            [value]="user.role"
-            (change)="onRoleChange(user.login, $event)"
+      <h3 class="title">Пользователи с правами доступа</h3>
+
+      <ul class="user-list">
+        <li *ngFor="let user of users" class="user-row">
+          <span class="user-login">{{ user.login }}</span>
+
+          <!-- <mat-icon
+            [ngSwitch]="user.role"
+            class="user-role-icon"
+            matTooltip="{{ user.role }}"
           >
-            <option value="viewer">Просмотр</option>
-            <option value="editor">Редактирование</option>
-            <option value="admin">Администрирование</option>
-          </select>
-          <button class="remove-btn" (click)="removePermission(user.login)">
-            Удалить
+            <ng-container *ngSwitchCase="'admin'"
+              >admin_panel_settings</ng-container
+            >
+            <ng-container *ngSwitchCase="'editor'">edit</ng-container>
+            <ng-container *ngSwitchDefault>visibility</ng-container>
+          </mat-icon> -->
+
+          <mat-form-field appearance="outline" class="user-role-select">
+            <mat-select
+              [value]="user.role"
+              (selectionChange)="onRoleChange(user.login, $event)"
+              style="min-width: 230px;"
+            >
+              <mat-select-trigger>
+                <div style="min-width: 300px;">
+                  <mat-icon style="vertical-align: middle; margin-right: 6px;">
+                    {{
+                      user.role === 'admin'
+                        ? 'admin_panel_settings'
+                        : user.role === 'editor'
+                        ? 'edit'
+                        : 'visibility'
+                    }}
+                  </mat-icon>
+                  {{
+                    user.role === 'admin'
+                      ? 'Администрирование'
+                      : user.role === 'editor'
+                      ? 'Редактирование'
+                      : 'Просмотр'
+                  }}
+                </div>
+              </mat-select-trigger>
+
+              <mat-option value="viewer">
+                <mat-icon>visibility</mat-icon> Просмотр
+              </mat-option>
+              <mat-option value="editor">
+                <mat-icon>edit</mat-icon> Редактирование
+              </mat-option>
+              <mat-option value="admin">
+                <mat-icon>admin_panel_settings</mat-icon> Администрирование
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <button
+            mat-icon-button
+            color="warn"
+            (click)="removePermission(user.login)"
+            matTooltip="Удалить пользователя"
+          >
+            <mat-icon>remove_circle</mat-icon>
           </button>
         </li>
       </ul>
 
       <form
-        class="permission-form"
         [formGroup]="permissionForm"
         (ngSubmit)="addPermission()"
+        class="permission-form"
       >
-        <input
-          class="input-field"
-          type="text"
-          formControlName="login"
-          placeholder="Логин пользователя"
-        />
-        <select formControlName="role" class="input-field-select">
-          <option value="viewer">Просмотр</option>
-          <option value="editor">Редактирование</option>
-          <option value="admin">Администрирование</option>
-        </select>
-        <button
-          class="add-btn"
-          type="submit"
-          [disabled]="permissionForm.invalid"
-        >
-          Добавить пользователя
-        </button>
+        <mat-form-field appearance="outline" class="form-item">
+          <mat-label>Логин пользователя</mat-label>
+          <input matInput formControlName="login" placeholder="Введите логин" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-item">
+          <mat-label>Роль</mat-label>
+          <mat-select formControlName="role">
+            <mat-select-trigger>
+              <mat-icon style="vertical-align: middle; margin-right: 6px;">
+                {{
+                  permissionForm.get('role')?.value === 'admin'
+                    ? 'admin_panel_settings'
+                    : permissionForm.get('role')?.value === 'editor'
+                    ? 'edit'
+                    : 'visibility'
+                }}
+              </mat-icon>
+              {{
+                permissionForm.get('role')?.value === 'admin'
+                  ? 'Администрирование'
+                  : permissionForm.get('role')?.value === 'editor'
+                  ? 'Редактирование'
+                  : 'Просмотр'
+              }}
+            </mat-select-trigger>
+
+            <mat-option value="viewer">
+              <mat-icon>visibility</mat-icon> Просмотр
+            </mat-option>
+            <mat-option value="editor">
+              <mat-icon>edit</mat-icon> Редактирование
+            </mat-option>
+            <mat-option value="admin">
+              <mat-icon>admin_panel_settings</mat-icon> Администрирование
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <div class="form-actions">
+          <button
+            mat-raised-button
+            color="primary"
+            type="submit"
+            [disabled]="permissionForm.invalid"
+          >
+            Добавить
+          </button>
+        </div>
       </form>
     </div>
   `,
@@ -64,114 +162,113 @@ import { catchError, of, throwError } from 'rxjs';
       .permissions-container {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        margin-top: 20px;
-        padding: 20px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background-color: #f9f9f9;
-        width: 350px;
-      }
-      h3 {
-        text-align: center;
-        margin-bottom: 15px;
-        color: #333;
-      }
-      ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: center; /* Центрируем все строки */
-      }
-      li {
-        display: flex;
-        align-items: center;
-        justify-content: center; /* Центрирование содержимого */
-        gap: 10px;
-
-        /* Удаляем фон и тень */
+        padding: 24px;
+        padding-top: 5px;
+        border-radius: 16px;
+        max-width: 500px;
+        margin-bottom: 24px;
+        margin-top: 0px;
+        margin-right: auto;
+        margin-left: auto;
         background: transparent;
         box-shadow: none;
-        border: none;
-        padding: 8px 0;
-        margin-bottom: 10px;
       }
 
-      li select {
-        flex-shrink: 0;
-        padding: 6px 8px;
-        border: 1px solid #ccc;
-        border-radius: 6px;
-        background: white;
-        font-size: 14px;
-        min-width: 160px;
+      .title {
+        margin-top: 0;
+        margin-bottom: 24px;
+        font-size: 22px;
+        font-weight: 600;
+        text-align: center;
       }
-      .input-field-select {
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        min-width: 160px;
+
+      .user-list {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 24px 0;
       }
-      .user-item {
+
+      .user-row {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #fff;
-        padding: 8px 12px;
-        margin: 5px 0;
-        border-radius: 5px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      }
-      .remove-btn {
-        background-color: #ff4d4d;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background 0.3s;
-      }
-      .remove-btn:hover {
-        background-color: #cc0000;
-      }
-      .permission-form {
-        display: flex;
-        flex-direction: row;
         align-items: center;
         justify-content: center;
-        margin-top: 15px;
-        width: 100%;
-        gap: 10px;
-        flex-wrap: wrap; /* чтобы не ломалось на маленьких экранах */
+        gap: 12px;
+        padding: 8px 0;
+        flex-wrap: wrap;
       }
-      .input-field {
-        width: 45%;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
-        /* Убираем margin-bottom */
+
+      .user-login {
+        flex: 1 1 auto;
+        font-weight: 500;
       }
-      .add-btn {
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        padding: 8px 12px;
-        border-radius: 5px;
-        cursor: pointer;
+
+      .user-role-icon {
+        color: #616161;
+      }
+
+      .user-role-select {
         margin-top: 20px;
-        width: 80%;
-        transition: background 0.3s;
+        min-width: 270px;
       }
-      .add-btn:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
+
+      .permission-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
       }
-      .add-btn:hover:not(:disabled) {
-        background-color: #45a049;
+
+      .form-item {
+        flex: 1 1 300px;
+        min-width: 200px;
+      }
+
+      .form-actions {
+        flex-basis: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      ::ng-deep .mat-form-field {
+        min-height: unset;
+      }
+
+      @media (max-width: 600px) {
+        .user-row {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          padding: 8px 0;
+          flex-wrap: wrap;
+        }
+
+        .user-list {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 24px 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 70px;
+        }
+
+        // .permission-form {
+        //   flex-direction: column;
+        //   gap: 8px; /* Уменьшить промежутки */
+        // }
+
+        // .form-item {
+        //   width: 100%;
+        //   max-width: 400px;
+        //   margin: 0 auto;
+        // }
+
+        // .mat-form-field {
+        //   margin: 4px 0; /* Уменьшить внутренние отступы */
+        // }
       }
     `,
   ],
@@ -226,12 +323,8 @@ export class PermissionsFormComponent implements OnInit {
       });
   }
 
-  onRoleChange(login: string, event: Event) {
-    const newRole = (event.target as HTMLSelectElement).value as
-      | 'viewer'
-      | 'editor'
-      | 'admin';
-
+  onRoleChange(login: string, event: MatSelectChange) {
+    const newRole = event.value as 'viewer' | 'editor' | 'admin';
     this.http
       .patch(`/api/v1/edit-permission/update/${this.linkId}`, {
         login,

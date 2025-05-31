@@ -536,7 +536,9 @@ export class ReportController {
 
       res.set({
         'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename="report-${report.name}.csv"`,
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(
+          `report-${report.name}.csv`
+        )}`,
       });
       res.send(csvContent);
     } else if (format === 'xlsx') {
@@ -579,7 +581,9 @@ export class ReportController {
       res.set({
         'Content-Type':
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="report-${report.name}.xlsx"`,
+        'Content-Disposition': `attachment; filename*=UTF-8''${encodeURIComponent(
+          `report-${report.name}.xlsx`
+        )}`,
       });
       await workbook.xlsx.write(res);
       res.end();

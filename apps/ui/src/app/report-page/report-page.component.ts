@@ -11,6 +11,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import {
   FullReportDto,
+  LinkStatReportDto,
   ReportModelDto,
   ReportWithPermissionsDto,
   UpdateReportBodyDto,
@@ -199,18 +200,15 @@ Chart.register(...registerables);
         <canvas #chartCanvas></canvas>
 
         <div *ngIf="fullReportDto">
-          <h2>Общая статистика</h2>
           <app-link-stats-summary
             [stats]="fullReportDto.aggregate"
-            title="Общее по всем ссылкам"
+            title=""
           ></app-link-stats-summary>
 
-          <h2>Статистика по ссылкам</h2>
           <ng-container *ngFor="let linkStat of fullReportDto.linksStats">
             <app-link-stats-summary
               [stats]="linkStat"
-              [title]="linkStat.shortKey"
-              [description]="linkStat.description"
+              [title]="titleFromLinkStat(linkStat)"
             ></app-link-stats-summary>
           </ng-container>
         </div>
@@ -646,13 +644,26 @@ export class ReportPageComponent implements OnInit, OnDestroy {
         `/api/v1/reports/${reportId}/export?format=${format}&timezoneOffsetInMinutes=${0}`,
         {
           responseType: 'blob',
+          observe: 'response',
         }
       )
-      .subscribe((blob) => {
+      .subscribe((response) => {
+        const blob = response.body!;
+        const contentDisposition = response.headers.get('Content-Disposition');
+
+        let filename = `report.${format}`; // fallback по умолчанию
+
+        if (contentDisposition) {
+          const match = contentDisposition.match(/filename\*=UTF-8''(.+)/);
+          if (match && match[1]) {
+            filename = decodeURIComponent(match[1]);
+          }
+        }
+
         const a = document.createElement('a');
         const objectUrl = URL.createObjectURL(blob);
         a.href = objectUrl;
-        a.download = `report.${format}`;
+        a.download = filename;
         a.click();
         URL.revokeObjectURL(objectUrl);
       });
@@ -683,5 +694,9 @@ export class ReportPageComponent implements OnInit, OnDestroy {
 
   onAccessDenied(): void {
     this.permissionAccessDenied = true;
+  }
+
+  titleFromLinkStat(linkStat: LinkStatReportDto): string {
+    return `Статистика по ссылке: ${linkStat.description || linkStat.shortKey}`;
   }
 }
