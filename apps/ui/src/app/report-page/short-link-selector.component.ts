@@ -38,7 +38,59 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   ],
   template: `
     <div class="selector-container">
-      <mat-form-field appearance="outline" class="search-field">
+      <div style="display: flex; justify-content: space-between;">
+        <div *ngIf="shortLinks.length > 0">
+          <label for="sort" style="margin-left: 10px;">Сортировка:</label>
+          <div class="sort-container">
+            <select
+              class="sort-select"
+              id="sort"
+              [(ngModel)]="localSortBy"
+              (change)="onSortByChange()"
+            >
+              <option value="updatedAt">По дате обновления</option>
+              <option value="createdAt">По дате создания</option>
+              <option value="description">По описанию</option>
+            </select>
+          </div>
+        </div>
+
+        <div *ngIf="shortLinks.length > 0">
+          <label for="order" style="margin-left: 10px;"
+            >Порядок сортировки:</label
+          >
+          <div class="sort-container">
+            <select
+              class="sort-select"
+              id="order"
+              [(ngModel)]="localSortDirection"
+              (change)="toggleSortDirection()"
+            >
+              <option value="asc">
+                @if (localSortBy === "updatedAt" || localSortBy === "createdAt") { От
+                более давних к менее давним } @else { A-Z }
+              </option>
+              <option value="desc">
+                @if (localSortBy === "updatedAt" || localSortBy === "createdAt") { От
+                менее давних к более давним } @else { Z-A }
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="search-container">
+        <input
+          class="search-input"
+          style="width: 100%;"
+          #searchInput
+          [(ngModel)]="searchQuery"
+          (input)="onSearchInputChange()"
+          placeholder="Поиск (введите часть описания или ключа короткой ссылки) ..."
+        />
+      </div>
+
+      <!-- <mat-form-field appearance="outline" class="search-field">
         <mat-label>Поиск (введите часть описания или ключа)</mat-label>
         <input
           matInput
@@ -46,9 +98,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
           [(ngModel)]="searchQuery"
           (input)="onSearchInputChange()"
         />
-      </mat-form-field>
+      </mat-form-field> -->
 
-      <div class="sort-controls">
+      <!-- <div class="sort-controls">
         <span class="sort-label">Сортировка:</span>
         <mat-form-field appearance="outline" class="sort-field">
           <mat-select
@@ -65,7 +117,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
             localSortDirection === 'asc' ? 'arrow_upward' : 'arrow_downward'
           }}</mat-icon>
         </button>
-      </div>
+      </div> -->
 
       <div *ngIf="shortLinks.length === 0 && !loading" class="empty">
         Ничего не найдено
@@ -96,7 +148,35 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         <mat-spinner diameter="40"></mat-spinner>
       </div>
 
-      <div class="pagination" *ngIf="totalPages > 1">
+      @if (shortLinks.length > 0 && totalPages > 1) {
+      <div class="pagination">
+        <button
+          class="pagination-btn"
+          (click)="prevPage()"
+          [disabled]="page === 1"
+        >
+          Назад
+        </button>
+        <span>Страница</span>
+        <select
+          class="sort-select"
+          [(ngModel)]="page"
+          (change)="loadShortLinks()"
+          [disabled]="totalPages === 1"
+        >
+          <option *ngFor="let p of totalPagesArray" [value]="p">{{ p }}</option>
+        </select>
+        <button
+          class="pagination-btn"
+          (click)="nextPage()"
+          [disabled]="page === totalPages"
+        >
+          Вперед
+        </button>
+      </div>
+      }
+
+      <!-- <div class="pagination" *ngIf="totalPages > 1">
         <button mat-button (click)="prevPage()" [disabled]="page === 1">
           Назад
         </button>
@@ -114,7 +194,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
         >
           Вперёд
         </button>
-      </div>
+      </div> -->
     </div>
   `,
   styles: [
@@ -200,6 +280,79 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
       /* Стили для чекбокса */
       ::ng-deep .mat-checkbox-checked.mat-primary .mat-checkbox-background {
         background-color: #3f51b5; /* Цвет выбранного чекбокса */
+      }
+
+      .sort-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem;
+      }
+
+      .sort-select {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+      }
+
+      .sort-select:focus {
+        border-color: #007bff;
+        outline: none;
+      }
+
+      .search-container {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.5rem;
+      }
+
+      .search-input {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        width: 200px;
+        transition: border-color 0.2s ease;
+      }
+
+      .search-input:focus {
+        border-color: #007bff;
+        outline: none;
+      }
+
+      .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 1rem;
+        gap: 10px;
+      }
+
+      .pagination button,
+      .pagination select {
+        padding: 5px 10px;
+      }
+
+      .pagination-btn {
+        padding: 0.5rem 1rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background-color 0.2s ease, color 0.2s ease;
+      }
+
+      .pagination-btn:hover {
+        background-color: #007bff;
+        color: #fff;
+      }
+
+      .pagination-btn:disabled {
+        background-color: #e9ecef;
+        cursor: not-allowed;
       }
     `,
   ],

@@ -42,6 +42,24 @@ interface EditReportForm {
           class="form"
         >
           <div class="form-group">
+            <label for="name">Название отчета</label>
+            <input
+              id="name"
+              type="text"
+              formControlName="name"
+              [readonly]="!canEdit"
+              required
+              placeholder="Введите название отчёта"
+            />
+            <div
+              *ngIf="form.controls.name.invalid && form.controls.name.touched"
+              class="error"
+            >
+              Название обязательно
+            </div>
+          </div>
+
+          <!-- <div class="form-group">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Название отчета</mat-label>
               <input
@@ -58,10 +76,10 @@ interface EditReportForm {
             >
               Название обязательно
             </div>
-          </div>
+          </div> -->
 
           <div class="form-group">
-            <label>Ссылки в отчете</label>
+            <!-- <label>Ссылки в отчете</label> -->
 
             <app-short-link-selector
               [selectedLinkIds]="selectedLinkIds"
@@ -121,7 +139,7 @@ interface EditReportForm {
       .form {
         display: flex;
         flex-direction: column;
-        gap: 24px;
+        gap: 10px;
       }
 
       .form-group {
@@ -130,11 +148,11 @@ interface EditReportForm {
         gap: 8px;
       }
 
-      .form-group label {
-        font-weight: 500;
-        font-size: 14px;
-        color: rgba(0, 0, 0, 0.6);
-      }
+      // .form-group label {
+      //   font-weight: 500;
+      //   font-size: 14px;
+      //   color: rgba(0, 0, 0, 0.6);
+      // }
 
       .full-width {
         width: 100%;
@@ -143,7 +161,7 @@ interface EditReportForm {
       .error {
         color: #f44336;
         font-size: 12px;
-        margin-top: -16px;
+        margin-top: -10px;
       }
 
       .button-row {
@@ -157,6 +175,25 @@ interface EditReportForm {
         display: flex;
         justify-content: center;
         margin-top: 8px;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        margin-left: 10px;
+      }
+
+      input {
+        width: 95%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-left: 10px;
       }
     `,
   ],

@@ -41,13 +41,13 @@ export class LinkStatController {
       );
     }
 
-    const now = new Date();
+    // const now = new Date();
 
-    const clientNow = new Date(
-      now.getTime() - timezoneOffsetInMinutes * 60 * 1000
-    );
+    // const clientNow = new Date(
+    //   now.getTime() - timezoneOffsetInMinutes * 60 * 1000
+    // );
 
-    const maxDateSql = Prisma.sql`${clientNow}`;
+    // const maxDateSql = Prisma.sql`${clientNow}`;
 
     // Определяем параметры для группировки
     const timeScaleQuery = {
@@ -74,7 +74,7 @@ export class LinkStatController {
     WITH time_series AS (
       SELECT generate_series(
         (SELECT MIN(DATE_TRUNC(${timeScaleQuery}, "clickedAt")) FROM "LinkStat" WHERE "shortLinkId" = ${shortLink.id}),
-        ${maxDateSql},
+        NOW(),
         ${interval}
       ) AS period
     )

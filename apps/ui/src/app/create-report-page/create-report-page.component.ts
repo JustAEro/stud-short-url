@@ -1,7 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormGroup,
+  Validators,
+  ReactiveFormsModule,
+} from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { HeaderComponent } from '../header/header.component';
 import { CreateReportBodyDto, ShortLinkDto } from '@stud-short-url/common';
@@ -29,18 +34,46 @@ import { MatSnackBar } from '@angular/material/snack-bar';
     MatIconModule,
     MatCardModule,
     MatCheckboxModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
   ],
   template: `
     <app-header></app-header>
     <div class="container">
+      <button class="back-btn" (click)="goBack()">← Назад</button>
       <h1>Создание отчета</h1>
 
-      <form [formGroup]="reportForm" (ngSubmit)="onSubmit()" class="form-container">
-        <mat-form-field appearance="outline" class="full-width">
+      <form
+        [formGroup]="reportForm"
+        (ngSubmit)="onSubmit()"
+        class="form-container"
+      >
+        <div class="form-group">
+          <label for="name">Название</label>
+          <input
+            id="longUrl"
+            type="url"
+            formControlName="name"
+            placeholder="Введите название отчета"
+            required
+          />
+          <div
+            class="error"
+            *ngIf="
+              reportForm.get('name')?.invalid && reportForm.get('name')?.touched
+            "
+          >
+            Введите название отчета.
+          </div>
+        </div>
+
+        <!-- <mat-form-field appearance="outline" class="full-width">
           <mat-label>Название отчета</mat-label>
-          <input matInput formControlName="name" placeholder="Введите название отчета">
-        </mat-form-field>
+          <input
+            matInput
+            formControlName="name"
+            placeholder="Введите название отчета"
+          />
+        </mat-form-field> -->
 
         <app-short-link-selector
           [selectedLinkIds]="selectedLinkIdsSet"
@@ -55,53 +88,101 @@ import { MatSnackBar } from '@angular/material/snack-bar';
           color="primary"
           type="submit"
           class="submit-button"
-          [disabled]="reportForm.get('name')?.invalid || selectedLinkIds.length === 0 || loading"
+          [disabled]="
+            reportForm.get('name')?.invalid ||
+            selectedLinkIds.length === 0 ||
+            loading
+          "
         >
           <span *ngIf="!loading">Создать отчет</span>
-          <mat-spinner *ngIf="loading" diameter="20" strokeWidth="2"></mat-spinner>
+          <mat-spinner
+            *ngIf="loading"
+            diameter="20"
+            strokeWidth="2"
+          ></mat-spinner>
         </button>
       </form>
     </div>
   `,
-  styles: [`
-    .container {
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 16px;
-    }
+  styles: [
+    `
+      .container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background-color: #ffffff;
+      }
 
-    h1 {
-      text-align: center;
-      margin-bottom: 24px;
-      font-size: 24px;
-      font-weight: 500;
-    }
+      h1 {
+        text-align: center;
+        margin-bottom: 24px;
+        font-size: 24px;
+        font-weight: 500;
+      }
 
-    .form-container {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+      .form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
 
-    .full-width {
-      width: 100%;
-    }
+      .full-width {
+        width: 100%;
+      }
 
-    .submit-button {
-      margin-top: 16px;
-      height: 48px;
-      font-size: 16px;
-    }
+      .submit-button {
+        margin-top: 16px;
+        height: 48px;
+        font-size: 16px;
+      }
 
-    .submit-button:disabled {
-      background-color: #e0e0e0;
-      color: rgba(0, 0, 0, 0.38);
-    }
+      .submit-button:disabled {
+        background-color: #e0e0e0;
+        color: rgba(0, 0, 0, 0.38);
+      }
 
-    mat-spinner {
-      margin: 0 auto;
-    }
-  `]
+      mat-spinner {
+        margin: 0 auto;
+      }
+
+      .back-btn {
+        display: inline-block;
+        margin-bottom: 1rem;
+        padding: 0.5rem 1rem;
+        background: #f5f5f5;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+      }
+
+      .back-btn:hover {
+        background-color: #e2e6ea;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: bold;
+        margin-left: 8px;
+      }
+
+      input {
+        width: 96%;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-left: 8px;
+      }
+    `,
+  ],
 })
 export class CreateReportPageComponent {
   reportForm: FormGroup;
@@ -129,7 +210,7 @@ export class CreateReportPageComponent {
   onSubmit() {
     if (this.reportForm.invalid || this.selectedLinkIds.length === 0) {
       this.snackBar.open('Введите название и выберите ссылки', 'Закрыть', {
-        duration: 3000
+        duration: 3000,
       });
       return;
     }
@@ -144,24 +225,28 @@ export class CreateReportPageComponent {
     this.http.post('/api/v1/reports', reportData).subscribe({
       next: (response: any) => {
         this.snackBar.open('Отчет успешно создан', 'Закрыть', {
-          duration: 3000
+          duration: 3000,
         });
         this.router.navigate(['/reports', response.id]);
       },
       error: (error) => {
         console.error('Ошибка при создании отчета:', error);
         this.snackBar.open('Ошибка при создании отчета', 'Закрыть', {
-          duration: 3000
+          duration: 3000,
         });
         this.loading = false;
       },
       complete: () => {
         this.loading = false;
-      }
+      },
     });
   }
 
   get selectedLinkIdsSet(): Set<string> {
     return new Set(this.selectedLinkIds);
+  }
+
+  goBack() {
+    this.router.navigate(['../']); // Возвращает пользователя на предыдущий роут
   }
 }
